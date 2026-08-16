@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 import 'dart:io';
 
 class SubsidyDetailsScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
   XFile? receiverPhoto;
   XFile? itemsPhoto;
   XFile? videoProof;
+  bool _isLoading = false;
 
   // Mock data. This should be fetched from the backend using widget.tagNo
   final Map<String, dynamic> farmerInfo = {
@@ -44,7 +46,7 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
     }
   }
 
-  void _completeDelivery() {
+  Future<void> _completeDelivery() async {
     if (partnerPhoto == null || receiverPhoto == null || itemsPhoto == null || videoProof == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please upload all required photos and video')),
@@ -52,10 +54,42 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
       return;
     }
 
-    // Call backend API here to upload files and update status to delivered
+    setState(() {
+      _isLoading = true;
+    });
 
-    // On success, navigate to completion
-    context.go('/completion/${widget.tagNo}');
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('http://192.168.1.10:8000/api/deliveries/${widget.tagNo}'));
+      request.files.add(await http.MultipartFile.fromPath('partner_photo', partnerPhoto!.path));
+      request.files.add(await http.MultipartFile.fromPath('receiver_photo', receiverPhoto!.path));
+      request.files.add(await http.MultipartFile.fromPath('items_photo', itemsPhoto!.path));
+      request.files.add(await http.MultipartFile.fromPath('video_proof', videoProof!.path));
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        if (mounted) context.go('/completion/${widget.tagNo}');
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to upload: ${response.body}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Widget _buildUploadSection(String title, XFile? file, String type) {
@@ -144,8 +178,10 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
               ),
-              onPressed: _completeDelivery,
-              child: const Text('Complete Delivery', style: TextStyle(fontSize: 18)),
+              onPressed: _isLoading ? null : _completeDelivery,
+              child: _isLoading 
+                ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
+                : const Text('Complete Delivery', style: TextStyle(fontSize: 18)),
             ),
           ],
         ),

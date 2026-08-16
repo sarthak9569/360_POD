@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+motor
+pydantic
+cloudinary
+python-dotenv
+qrcode
+pillow
+python-multipart
+reportlab
+httpx
