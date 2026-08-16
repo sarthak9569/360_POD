@@ -1,0 +1,13 @@
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
+
+# Use an environment variable for the connection string, fallback to localhost for development
+MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+DATABASE_NAME = "proof_of_delivery"
+
+client = AsyncIOMotorClient(MONGODB_URL)
+db = client[DATABASE_NAME]
+
+# Collections
+farmers_collection = db.get_collection("farmers")
+deliveries_collection = db.get_collection("deliveries")
