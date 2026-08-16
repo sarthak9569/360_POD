@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'pdf_viewer_screen.dart';
 
 class InvoiceScreen extends StatefulWidget {
   final String tagNo;
@@ -171,8 +172,28 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.visibility),
+                  label: const Text('View Invoice'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: () {
+                    final String url = '$baseUrl/api/deliveries/${widget.tagNo}/invoice.pdf';
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PdfViewerScreen(pdfUrl: url),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.picture_as_pdf),
+                  icon: const Icon(Icons.download),
                   label: const Text('Download PDF Invoice'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),

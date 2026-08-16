@@ -88,26 +88,18 @@ async def generate_invoice_pdf(delivery_data: dict) -> str:
     c.setStrokeColor(colors.black)
     c.line(40, table_y - 45, width - 40, table_y - 45)
     
-    # 5. Proof of Delivery Video
+    # 5. Proof of Delivery Video & 6. Attached Images
     c.setFont("Helvetica-Bold", 12)
     c.drawString(40, table_y - 80, "Proof of Delivery Video:")
     
     video_url = delivery_data.get("video_proof_url", "No video provided")
-    c.setFont("Helvetica", 10)
-    c.setFillColor(colors.blue)
-    c.drawString(40, table_y - 100, "Tap here to view the Delivery Proof Video")
-    
-    # Make video link clickable
-    c.linkURL(video_url, (40, table_y - 105, 250, table_y - 90), relative=0)
-    
     c.setFillColor(colors.HexColor("#333333"))
     c.setFont("Helvetica", 8)
-    c.drawString(40, table_y - 115, f"URL: {video_url}")
+    c.drawString(40, table_y - 95, f"URL: {video_url}")
     
-    # 6. Attached Images
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(40, table_y - 150, "Attached Images:")
+    c.drawString(40, table_y - 230, "Attached Images:")
     
     async def download_image(url):
         if not url: return None
@@ -126,21 +118,44 @@ async def generate_invoice_pdf(delivery_data: dict) -> str:
     partner_url = delivery_data.get("partner_photo_url")
     receiver_url = delivery_data.get("receiver_photo_url")
     items_url = delivery_data.get("items_photo_url")
+    video_thumb_url = video_url.replace('.mp4', '.jpg') if video_url and '.mp4' in video_url else None
     
     images = await asyncio.gather(
+        download_image(video_thumb_url),
         download_image(partner_url),
         download_image(receiver_url),
         download_image(items_url)
     )
     
-    img_y = table_y - 280
+    # Draw Video Thumbnail
+    if images[0]:
+        try:
+            c.drawImage(images[0], 40, table_y - 200, width=150, height=100, preserveAspectRatio=True)
+            # Make video thumbnail clickable to the original video URL
+            if video_url and video_url != "No video provided":
+                c.linkURL(video_url, (40, table_y - 200, 190, table_y - 100), relative=0)
+            
+            # Overlay a play button or text (simulated)
+            c.setFillColor(colors.white)
+            c.rect(100, table_y - 160, 30, 20, fill=1, stroke=0)
+            c.setFillColor(colors.red)
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(102, table_y - 155, "PLAY")
+            
+            os.remove(images[0])
+        except Exception as e:
+            print(f"Failed to draw video thumbnail: {e}")
+
+    # Draw Other Images
+    img_y = table_y - 360
     x_positions = [40, 220, 400]
     labels = ["Partner Photo", "Receiver Photo", "Items Photo"]
     
-    for i, img_path in enumerate(images):
+    for i, img_path in enumerate(images[1:]):
         if img_path:
             try:
                 c.drawImage(img_path, x_positions[i], img_y, width=150, height=100, preserveAspectRatio=True)
+                c.setFillColor(colors.black)
                 c.setFont("Helvetica", 10)
                 c.drawString(x_positions[i], img_y - 15, labels[i])
                 os.remove(img_path)
