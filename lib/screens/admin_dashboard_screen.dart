@@ -65,11 +65,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             tooltip: 'Download All QRs',
             onPressed: () async {
               final url = Uri.parse('${ApiService.baseUrl}/beneficiaries/qrs/download');
-              if (await canLaunchUrl(url)) {
+              try {
                 await launchUrl(url, mode: LaunchMode.externalApplication);
-              } else {
+              } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch download URL')));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch download URL: $e')));
                 }
               }
             },
