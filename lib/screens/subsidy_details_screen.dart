@@ -46,7 +46,7 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
         final data = jsonDecode(response.body);
         
         if (data['is_completed'] == true) {
-          if (mounted) context.go('/completion/${widget.tagNo}');
+          if (mounted) context.go('/completion/${widget.tagNo}?alreadyUsed=true');
           return;
         }
         

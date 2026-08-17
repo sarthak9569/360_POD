@@ -6,7 +6,8 @@ import '../services/api_service.dart';
 
 class OrderCompletionScreen extends StatefulWidget {
   final String tagNo;
-  const OrderCompletionScreen({super.key, required this.tagNo});
+  final bool alreadyUsed;
+  const OrderCompletionScreen({super.key, required this.tagNo, this.alreadyUsed = false});
 
   @override
   State<OrderCompletionScreen> createState() => _OrderCompletionScreenState();
@@ -79,8 +80,11 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Delivery Details'),
-        automaticallyImplyLeading: false, // Prevent going back to upload screen
+        title: Text(widget.alreadyUsed ? 'Subsidy Redeemed' : 'Delivery Complete'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
       ),
       body: _isLoading 
           ? const Center(child: CircularProgressIndicator())
@@ -116,12 +120,16 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.check_circle, size: 80, color: Colors.green),
+          Icon(
+            widget.alreadyUsed ? Icons.info : Icons.check_circle, 
+            size: 80, 
+            color: widget.alreadyUsed ? Colors.orange : Colors.green
+          ),
           const SizedBox(height: 16),
-          const Text(
-            'Delivery Complete',
+          Text(
+            widget.alreadyUsed ? 'Subsidy Redeemed Already' : 'Delivery Complete',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(

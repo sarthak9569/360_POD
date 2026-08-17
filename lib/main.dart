@@ -38,7 +38,8 @@ final GoRouter _router = GoRouter(
       path: '/completion/:tagNo',
       builder: (BuildContext context, GoRouterState state) {
         final tagNo = state.pathParameters['tagNo']!;
-        return OrderCompletionScreen(tagNo: tagNo);
+        final alreadyUsed = state.uri.queryParameters['alreadyUsed'] == 'true';
+        return OrderCompletionScreen(tagNo: tagNo, alreadyUsed: alreadyUsed);
       },
     ),
     GoRoute(
@@ -69,6 +70,7 @@ class ProofOfDeliveryApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
       title: 'Proof of Delivery',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
