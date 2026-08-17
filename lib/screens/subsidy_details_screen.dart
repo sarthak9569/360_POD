@@ -49,8 +49,16 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
           _month = data['month'];
         });
       } else {
+        String errMsg = 'Failed to load details: ${response.statusCode}';
+        try {
+          final errorData = jsonDecode(response.body);
+          if (errorData['detail'] != null) {
+            errMsg = errorData['detail'];
+          }
+        } catch (_) {}
+        
         setState(() {
-          _errorMsg = 'Failed to load details: ${response.statusCode}\nMake sure you scan a valid monthly QR (e.g. 106208111223-M1)';
+          _errorMsg = errMsg;
         });
       }
     } catch (e) {
@@ -92,7 +100,7 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
     });
 
     try {
-      final tagToUse = _beneficiaryData?['tag_no'] ?? widget.tagNo;
+      final tagToUse = widget.tagNo; // Use the full QR code string
       final success = await ApiService.completeDelivery(
         tagNo: tagToUse,
         partnerPhoto: partnerPhoto!,

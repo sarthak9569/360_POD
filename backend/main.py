@@ -102,6 +102,11 @@ async def get_qr_data(qr_code_id: str):
     if not beneficiary:
         raise HTTPException(status_code=404, detail="Beneficiary not found")
         
+    # Check if this specific month's QR code has already been used
+    existing_delivery = await deliveries_collection.find_one({"tag_no": qr_code_id})
+    if existing_delivery:
+        raise HTTPException(status_code=400, detail="This QR code has already been used for delivery")
+        
     beneficiary['_id'] = str(beneficiary['_id'])
     
     # Return both the beneficiary and the month context
