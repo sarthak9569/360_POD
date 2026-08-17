@@ -39,7 +39,24 @@ async def get_beneficiaries():
         b['_id'] = str(b['_id'])
     return beneficiaries
 
-from pdf_service import generate_qr_pdf
+@app.get("/api/beneficiaries/qrs/download")
+async def download_all_qrs():
+    cursor = beneficiaries_collection.find({})
+    beneficiaries = await cursor.to_list(length=1000)
+    
+    if not beneficiaries:
+        raise HTTPException(status_code=404, detail="No active beneficiaries found")
+        
+    pdf_path = await generate_all_qrs_pdf(beneficiaries)
+    
+    return FileResponse(
+        path=pdf_path, 
+        filename="All_Active_QRs.pdf", 
+        media_type="application/pdf",
+        background=BackgroundTask(lambda: os.remove(pdf_path) if os.path.exists(pdf_path) else None)
+    )
+
+from pdf_service import generate_qr_pdf, generate_all_qrs_pdf
 from starlette.background import BackgroundTask
 from fastapi.responses import FileResponse
 

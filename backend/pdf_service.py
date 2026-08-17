@@ -240,3 +240,71 @@ async def generate_qr_pdf(beneficiary_data: dict) -> str:
         
     c.save()
     return temp_pdf_path
+
+async def generate_all_qrs_pdf(beneficiaries: list) -> str:
+    """Generates a multi-page PDF containing 12 monthly QR codes for each beneficiary."""
+    temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    temp_pdf_path = temp_pdf.name
+    temp_pdf.close()
+    
+    c = canvas.Canvas(temp_pdf_path, pagesize=letter)
+    width, height = letter
+    
+    for beneficiary_data in beneficiaries:
+        tag_no = beneficiary_data.get('tag_no', 'UNKNOWN')
+        name = beneficiary_data.get('farmer_name', 'Unknown')
+        
+        # Title
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(40, height - 40, f"Monthly QR Codes for: {name} (Tag: {tag_no})")
+        
+        # Grid layout for 12 QRs (3 columns, 4 rows)
+        cols = 3
+        rows = 4
+        qr_size = 120
+        x_spacing = 180
+        y_spacing = 160
+        
+        start_x = 40
+        start_y = height - 200
+        
+        for i in range(12):
+            month = i + 1
+            qr_data_string = f"{tag_no}-M{month}"
+            
+            # Generate QR code in memory
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(qr_data_string)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            # Save to BytesIO
+            img_buffer = BytesIO()
+            img.save(img_buffer)
+            img_buffer.seek(0)
+            
+            col = i % cols
+            row = i // cols
+            
+            x = start_x + (col * x_spacing)
+            y = start_y - (row * y_spacing)
+            
+            # Draw QR Image
+            qr_image = ImageReader(img_buffer)
+            c.drawImage(qr_image, x, y, width=qr_size, height=qr_size)
+            
+            # Label below QR
+            c.setFont("Helvetica-Bold", 12)
+            c.drawCentredString(x + (qr_size/2), y - 15, f"Month {month}")
+            c.setFont("Helvetica", 10)
+            c.drawCentredString(x + (qr_size/2), y - 30, qr_data_string)
+            
+        c.showPage() # Move to next page for the next beneficiary
+        
+    c.save()
+    return temp_pdf_path

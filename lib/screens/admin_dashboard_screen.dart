@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../services/api_service.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -23,7 +25,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Future<void> _fetchBeneficiaries() async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse('http://localhost:8000/api/beneficiaries'));
+      final response = await http.get(Uri.parse('${ApiService.baseUrl}/beneficiaries'));
       if (response.statusCode == 200) {
         setState(() {
           _beneficiaries = jsonDecode(response.body);
@@ -38,7 +40,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _deleteBeneficiary(String tagNo) async {
     try {
-      final response = await http.delete(Uri.parse('http://localhost:8000/api/beneficiaries/$tagNo'));
+      final response = await http.delete(Uri.parse('${ApiService.baseUrl}/beneficiaries/$tagNo'));
       if (response.statusCode == 200) {
         _fetchBeneficiaries();
         if (mounted) {
@@ -57,6 +59,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         title: const Text('Beneficiaries Dashboard'),
         backgroundColor: Colors.blueGrey,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_2),
+            tooltip: 'Download All QRs',
+            onPressed: () async {
+              final url = Uri.parse('${ApiService.baseUrl}/beneficiaries/qrs/download');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch download URL')));
+                }
+              }
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
