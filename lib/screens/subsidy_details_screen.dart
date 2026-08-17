@@ -44,6 +44,12 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
       final response = await http.get(Uri.parse('${ApiService.baseUrl}/qr/${widget.tagNo}'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        if (data['is_completed'] == true) {
+          if (mounted) context.go('/completion/${widget.tagNo}');
+          return;
+        }
+        
         setState(() {
           _beneficiaryData = data['beneficiary'];
           _month = data['month'];

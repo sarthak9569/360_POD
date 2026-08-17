@@ -104,15 +104,15 @@ async def get_qr_data(qr_code_id: str):
         
     # Check if this specific month's QR code has already been used
     existing_delivery = await deliveries_collection.find_one({"tag_no": qr_code_id})
-    if existing_delivery:
-        raise HTTPException(status_code=400, detail="This QR code has already been used for delivery")
+    is_completed = existing_delivery is not None
         
     beneficiary['_id'] = str(beneficiary['_id'])
     
     # Return both the beneficiary and the month context
     return {
         "beneficiary": beneficiary,
-        "month": int(month)
+        "month": int(month),
+        "is_completed": is_completed
     }
 
 @app.post("/api/deliveries/{tag_no}")
@@ -189,6 +189,15 @@ async def get_delivery(tag_no: str):
         raise HTTPException(status_code=404, detail="Delivery not found")
     
     delivery['_id'] = str(delivery['_id'])
+    
+    parts = tag_no.split("-M")
+    if len(parts) > 0:
+        ben_tag = parts[0]
+        beneficiary = await beneficiaries_collection.find_one({"tag_no": ben_tag})
+        if beneficiary:
+            beneficiary['_id'] = str(beneficiary['_id'])
+            delivery['beneficiary'] = beneficiary
+
     return delivery
 
 @app.get("/api/deliveries/{tag_no}/invoice.pdf")
