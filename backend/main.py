@@ -36,13 +36,8 @@ SUPERVISORS_MAPPING = {
 
 @app.get("/api/districts")
 async def get_districts():
-    districts = await beneficiaries_collection.distinct("district")
-    # Return distinct districts sorted, or fallback to the dictionary keys
-    # Actually, the requirement says "only show villages that exist in the database for the selected district"
-    # But for districts, we could just return the ones in the DB.
-    # To be safe and show at least the valid ones:
-    valid_districts = sorted([d for d in districts if d and str(d).lower() != 'nan'])
-    return valid_districts
+    # Return all static districts defined in SUPERVISORS_MAPPING
+    return list(SUPERVISORS_MAPPING.keys())
 
 @app.get("/api/districts/{district}/villages")
 async def get_villages(district: str):
