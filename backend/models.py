@@ -29,3 +29,9 @@ class DeliveryInDB(DeliveryCreate):
 
 class DeliveryUpdateStatus(BaseModel):
     status: str
+
+class PartnerLogin(BaseModel):
+    district: str
+    village: str
+    supervisor_name: str
+    partner_name: str

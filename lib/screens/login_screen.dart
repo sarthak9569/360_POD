@@ -12,24 +12,72 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  String? selectedDistrict;
   String? selectedVillage;
+  final TextEditingController _supervisorNameController = TextEditingController();
   final TextEditingController _partnerNameController = TextEditingController();
 
-  // Mock list for now. This could be fetched from the backend.
-  final List<String> villages = [
-    'Ghodagaon',
-    'Dhoragaon',
-    'Masra',
-    'Alor',
-    'Belmala',
-    'Sharda Nagar',
-    'Bade Kapsi',
-    'Ghotiya',
-    'Aja',
-    'Dhanagahan',
-    'Janki Nagar',
-    'Harsngarh'
-  ];
+  List<String> districts = [];
+  List<String> villages = [];
+  bool isLoadingDistricts = true;
+  bool isLoadingVillages = false;
+  bool isLoggingIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDistricts();
+  }
+
+  Future<void> _fetchDistricts() async {
+    final fetchedDistricts = await ApiService.getDistricts();
+    if (mounted) {
+      setState(() {
+        districts = fetchedDistricts;
+        isLoadingDistricts = false;
+      });
+    }
+  }
+
+  Future<void> _fetchVillages(String district) async {
+    setState(() {
+      isLoadingVillages = true;
+      selectedVillage = null;
+      villages = [];
+    });
+    final fetchedVillages = await ApiService.getVillages(district);
+    if (mounted) {
+      setState(() {
+        villages = fetchedVillages;
+        isLoadingVillages = false;
+      });
+    }
+  }
+
+  Future<void> _handlePartnerLogin() async {
+    if (selectedDistrict == null || selectedVillage == null || _supervisorNameController.text.isEmpty || _partnerNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+
+    setState(() => isLoggingIn = true);
+
+    final success = await ApiService.partnerLogin(
+      district: selectedDistrict!,
+      village: selectedVillage!,
+      supervisorName: _supervisorNameController.text.trim(),
+      partnerName: _partnerNameController.text.trim(),
+    );
+
+    if (mounted) {
+      setState(() => isLoggingIn = false);
+      if (success) {
+        context.go('/home');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login failed: Invalid supervisor name for the selected district.')));
+      }
+    }
+  }
 
   Future<void> _showAdminLoginDialog() async {
     final usernameController = TextEditingController();
@@ -111,37 +159,75 @@ class _LoginScreenState extends State<LoginScreen> {
           )
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 40),
             const Icon(Icons.local_shipping, size: 100, color: Colors.green),
             const SizedBox(height: 32),
-            DropdownButtonFormField<String>(
+            if (isLoadingDistricts)
+              const Center(child: CircularProgressIndicator())
+            else
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Select District',
+                  border: OutlineInputBorder(),
+                ),
+                value: selectedDistrict,
+                items: districts.map((String district) {
+                  return DropdownMenuItem<String>(
+                    value: district,
+                    child: Text(district),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      selectedDistrict = newValue;
+                    });
+                    _fetchVillages(newValue);
+                  }
+                },
+              ),
+            const SizedBox(height: 16),
+            if (isLoadingVillages)
+              const Center(child: CircularProgressIndicator())
+            else
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Select Village',
+                  border: OutlineInputBorder(),
+                ),
+                value: selectedVillage,
+                items: villages.map((String village) {
+                  return DropdownMenuItem<String>(
+                    value: village,
+                    child: Text(village),
+                  );
+                }).toList(),
+                onChanged: selectedDistrict == null ? null : (String? newValue) {
+                  setState(() {
+                    selectedVillage = newValue;
+                  });
+                },
+              ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _supervisorNameController,
               decoration: const InputDecoration(
-                labelText: 'Select Village',
+                labelText: 'Supervisor Name',
                 border: OutlineInputBorder(),
               ),
-              initialValue: selectedVillage,
-              items: villages.map((String village) {
-                return DropdownMenuItem<String>(
-                  value: village,
-                  child: Text(village),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  selectedVillage = newValue;
-                });
-              },
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _partnerNameController,
+              obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Delivery Partner Name',
+                labelText: 'Partner Name (Password)',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -150,17 +236,10 @@ class _LoginScreenState extends State<LoginScreen> {
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              onPressed: () {
-                if (selectedVillage != null && _partnerNameController.text.isNotEmpty) {
-                  // In a real app, you might save this in local storage/state
-                  context.go('/home');
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please fill all fields')),
-                  );
-                }
-              },
-              child: const Text('Login', style: TextStyle(fontSize: 18)),
+              onPressed: isLoggingIn ? null : _handlePartnerLogin,
+              child: isLoggingIn 
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text('Login', style: TextStyle(fontSize: 18)),
             ),
             const SizedBox(height: 16),
             TextButton(

@@ -6,7 +6,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from database import deliveries_collection, beneficiaries_collection
 from cloudinary_service import upload_media
-from models import DeliveryCreate, BeneficiaryCreate
+from models import DeliveryCreate, BeneficiaryCreate, PartnerLogin
 import asyncio
 from pydantic import BaseModel
 import pandas as pd
@@ -25,6 +25,43 @@ app.add_middleware(
 class AdminLogin(BaseModel):
     username: str
     password: str
+
+SUPERVISORS_MAPPING = {
+    "Mahasamund": "Ankit",
+    "Kanker": "Sreekant Mandal",
+    "Kondagaon": "Kishor",
+    "Sharangarh": "Patel Thandaram",
+    "Balrampur": "Millan Haldhar"
+}
+
+@app.get("/api/districts")
+async def get_districts():
+    districts = await beneficiaries_collection.distinct("district")
+    # Return distinct districts sorted, or fallback to the dictionary keys
+    # Actually, the requirement says "only show villages that exist in the database for the selected district"
+    # But for districts, we could just return the ones in the DB.
+    # To be safe and show at least the valid ones:
+    valid_districts = [d for d in districts if d]
+    return valid_districts
+
+@app.get("/api/districts/{district}/villages")
+async def get_villages(district: str):
+    villages = await beneficiaries_collection.distinct("village", {"district": district})
+    valid_villages = [v for v in villages if v]
+    return valid_villages
+
+@app.post("/api/partner/login")
+async def partner_login(payload: PartnerLogin):
+    # Verify if supervisor matches the district (case-insensitive)
+    expected_supervisor = SUPERVISORS_MAPPING.get(payload.district)
+    if not expected_supervisor:
+        raise HTTPException(status_code=403, detail="Invalid district or no supervisor mapped.")
+    
+    if expected_supervisor.lower() != payload.supervisor_name.lower():
+        raise HTTPException(status_code=403, detail="Access Denied: Incorrect supervisor name for this district.")
+        
+    return {"success": True, "partner_name": payload.partner_name, "district": payload.district, "village": payload.village}
+
 
 @app.post("/api/admin/login")
 async def admin_login(creds: AdminLogin):

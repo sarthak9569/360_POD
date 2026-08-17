@@ -57,4 +57,60 @@ class ApiService {
   static String getInvoicePdfUrl(String tagNo) {
     return '$baseUrl/deliveries/$tagNo/invoice.pdf';
   }
+
+  static Future<List<String>> getDistricts() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/districts'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.cast<String>();
+      }
+    } catch (e) {
+      debugPrint('Error fetching districts: $e');
+    }
+    return [];
+  }
+
+  static Future<List<String>> getVillages(String district) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/districts/$district/villages'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.cast<String>();
+      }
+    } catch (e) {
+      debugPrint('Error fetching villages: $e');
+    }
+    return [];
+  }
+
+  static Future<bool> partnerLogin({
+    required String district,
+    required String village,
+    required String supervisorName,
+    required String partnerName,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/partner/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'district': district,
+          'village': village,
+          'supervisor_name': supervisorName,
+          'partner_name': partnerName,
+        }),
+      );
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        final data = jsonDecode(response.body);
+        debugPrint('Login failed: ${data["detail"]}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error logging in partner: $e');
+      return false;
+    }
+  }
 }
