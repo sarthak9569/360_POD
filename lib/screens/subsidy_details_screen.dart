@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../services/api_service.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -39,7 +41,7 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
       _errorMsg = '';
     });
     try {
-      final response = await http.get(Uri.parse('http://localhost:8000/api/qr/${widget.tagNo}'));
+      final response = await http.get(Uri.parse('${ApiService.baseUrl}/qr/${widget.tagNo}'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
