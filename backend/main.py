@@ -9,6 +9,8 @@ from cloudinary_service import upload_media
 from models import DeliveryCreate, BeneficiaryCreate
 import asyncio
 from pydantic import BaseModel
+import pandas as pd
+import io
 
 app = FastAPI(title="Proof of Delivery Backend")
 
@@ -80,6 +82,71 @@ async def create_beneficiary(beneficiary: BeneficiaryCreate):
         media_type="application/pdf",
         background=BackgroundTask(lambda: os.remove(pdf_path) if os.path.exists(pdf_path) else None)
     )
+
+@app.get("/api/beneficiaries/{tag_no}/qrs/download")
+async def download_single_qrs(tag_no: str):
+    beneficiary = await beneficiaries_collection.find_one({"tag_no": tag_no})
+    if not beneficiary:
+        raise HTTPException(status_code=404, detail="Beneficiary not found")
+    
+    pdf_path = await generate_qr_pdf(beneficiary)
+    
+    return FileResponse(
+        path=pdf_path, 
+        filename=f"QRs_{tag_no}.pdf", 
+        media_type="application/pdf",
+        background=BackgroundTask(lambda: os.remove(pdf_path) if os.path.exists(pdf_path) else None)
+    )
+
+@app.post("/api/beneficiaries/upload")
+async def upload_beneficiaries(file: UploadFile = File(...)):
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Only Excel files are supported")
+    
+    try:
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+        
+        expected_cols = {'tag_no', 'farmer_name', 'father_husband_name', 'village', 'district', 'cattle_feed_kg', 'silage_kg'}
+        if not expected_cols.issubset(set(df.columns)):
+            raise HTTPException(status_code=400, detail=f"Missing required columns. Expected: {expected_cols}")
+            
+        inserted_count = 0
+        skipped_count = 0
+        
+        for _, row in df.iterrows():
+            try:
+                tag_no = str(row.get('tag_no', '')).strip()
+                if not tag_no or tag_no == 'nan':
+                    continue
+                    
+                existing = await beneficiaries_collection.find_one({"tag_no": tag_no})
+                if existing:
+                    skipped_count += 1
+                    continue
+                    
+                beneficiary_data = {
+                    "tag_no": tag_no,
+                    "farmer_name": str(row.get('farmer_name', '')),
+                    "father_husband_name": str(row.get('father_husband_name', '')),
+                    "village": str(row.get('village', '')),
+                    "district": str(row.get('district', '')),
+                    "cattle_feed_kg": int(row.get('cattle_feed_kg', 0) if pd.notna(row.get('cattle_feed_kg')) else 0),
+                    "silage_kg": int(row.get('silage_kg', 0) if pd.notna(row.get('silage_kg')) else 0),
+                }
+                
+                beneficiary = BeneficiaryCreate(**beneficiary_data)
+                
+                await beneficiaries_collection.insert_one(beneficiary.dict())
+                inserted_count += 1
+            except Exception as e:
+                print(f"Error processing row {row.get('tag_no')}: {e}")
+                skipped_count += 1
+                
+        return {"message": "Upload complete", "inserted": inserted_count, "skipped": skipped_count}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 @app.delete("/api/beneficiaries/{tag_no}")
 async def delete_beneficiary(tag_no: str):

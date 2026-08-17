@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
   // Base URL provided by Railway
@@ -15,7 +16,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('Error fetching delivery: $e');
+      debugPrint('Error fetching delivery: $e');
       return null;
     }
   }
@@ -40,14 +41,14 @@ class ApiService {
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        print('Delivery completed successfully');
+        debugPrint('Delivery completed successfully');
         return true;
       } else {
-        print('Failed to complete delivery: ${response.statusCode} - ${response.body}');
+        debugPrint('Failed to complete delivery: ${response.statusCode} - ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Error completing delivery: $e');
+      debugPrint('Error completing delivery: $e');
       return false;
     }
   }

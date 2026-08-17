@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -52,6 +53,48 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _uploadExcel() async {
+    try {
+      PlatformFile? result = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+      );
+
+      if (result != null && result.path != null) {
+        setState(() => _isLoading = true);
+        var request = http.MultipartRequest('POST', Uri.parse('${ApiService.baseUrl}/beneficiaries/upload'));
+        request.files.add(await http.MultipartFile.fromPath('file', result.path!));
+        
+        var response = await request.send();
+        if (response.statusCode == 200) {
+          final respStr = await response.stream.bytesToString();
+          final data = jsonDecode(respStr);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Upload complete: ${data["inserted"]} inserted, ${data["skipped"]} skipped')),
+            );
+          }
+          _fetchBeneficiaries();
+        } else {
+          final respStr = await response.stream.bytesToString();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Upload failed (${response.statusCode}): $respStr')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,6 +104,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Upload Excel',
+            onPressed: _uploadExcel,
+          ),
+          IconButton(
             icon: const Icon(Icons.qr_code_2),
             tooltip: 'Download All QRs',
             onPressed: () async {
@@ -68,7 +116,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               try {
                 await launchUrl(url, mode: LaunchMode.externalApplication);
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch download URL: $e')));
                 }
               }
@@ -93,28 +141,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                         title: Text('${b['farmer_name']} - ${b['tag_no']}'),
                         subtitle: Text('Village: ${b['village']} | Cattle Feed: ${b['cattle_feed_kg']}kg, Silage: ${b['silage_kg']}kg'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Delete Beneficiary'),
-                                content: Text('Are you sure you want to delete ${b['farmer_name']}?'),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      _deleteBeneficiary(b['tag_no']);
-                                    },
-                                    child: const Text('Delete'),
-                                  )
-                                ],
-                              ),
-                            );
-                          },
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.download, color: Colors.blue),
+                              tooltip: 'Download QR',
+                              onPressed: () async {
+                                final url = Uri.parse('${ApiService.baseUrl}/beneficiaries/${b['tag_no']}/qrs/download');
+                                try {
+                                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch download URL: $e')));
+                                  }
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Delete Beneficiary'),
+                                    content: Text('Are you sure you want to delete ${b['farmer_name']}?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          _deleteBeneficiary(b['tag_no']);
+                                        },
+                                        child: const Text('Delete'),
+                                      )
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     );
