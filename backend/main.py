@@ -107,9 +107,12 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
         contents = await file.read()
         df = pd.read_excel(io.BytesIO(contents))
         
+        df.columns = [str(c).strip().lower() for c in df.columns]
+        
         expected_cols = {'tag_no', 'farmer_name', 'father_husband_name', 'village', 'district', 'cattle_feed_kg', 'silage_kg'}
-        if not expected_cols.issubset(set(df.columns)):
-            raise HTTPException(status_code=400, detail=f"Missing required columns. Expected: {expected_cols}")
+        missing_cols = expected_cols - set(df.columns)
+        if missing_cols:
+            raise HTTPException(status_code=400, detail=f"Missing required columns: {missing_cols}")
             
         inserted_count = 0
         skipped_count = 0
