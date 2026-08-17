@@ -105,12 +105,32 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
     
     try:
         contents = await file.read()
-        df = pd.read_excel(io.BytesIO(contents))
         
+        # Read without headers first to find the correct row
+        raw_df = pd.read_excel(io.BytesIO(contents), header=None)
+        
+        header_idx = 0
+        for i, row in raw_df.iterrows():
+            row_str = ' '.join(str(val).lower() for val in row.values)
+            if 'tag no.' in row_str or 'beneficiary name' in row_str:
+                header_idx = i
+                break
+                
+        df = pd.read_excel(io.BytesIO(contents), header=header_idx)
         df.columns = [str(c).strip().lower() for c in df.columns]
         
-        expected_cols = {'tag_no', 'farmer_name', 'father_husband_name', 'village', 'district', 'cattle_feed_kg', 'silage_kg'}
-        missing_cols = expected_cols - set(df.columns)
+        # Map file columns to expected keys
+        col_map = {
+            'tag no.': 'tag_no',
+            'beneficiary name': 'farmer_name',
+            "husband's name": 'father_husband_name',
+            'village': 'village',
+            'district': 'district',
+            'cattle feed (kg)': 'cattle_feed_kg',
+            'silage (kg)': 'silage_kg'
+        }
+        
+        missing_cols = set(col_map.keys()) - set(df.columns)
         if missing_cols:
             raise HTTPException(status_code=400, detail=f"Missing required columns: {missing_cols}")
             
@@ -119,7 +139,7 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
         
         for _, row in df.iterrows():
             try:
-                tag_no = str(row.get('tag_no', '')).strip()
+                tag_no = str(row.get('tag no.', '')).strip()
                 if not tag_no or tag_no == 'nan':
                     continue
                     
@@ -130,12 +150,12 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
                     
                 beneficiary_data = {
                     "tag_no": tag_no,
-                    "farmer_name": str(row.get('farmer_name', '')),
-                    "father_husband_name": str(row.get('father_husband_name', '')),
+                    "farmer_name": str(row.get('beneficiary name', '')),
+                    "father_husband_name": str(row.get("husband's name", '')),
                     "village": str(row.get('village', '')),
                     "district": str(row.get('district', '')),
-                    "cattle_feed_kg": int(row.get('cattle_feed_kg', 0) if pd.notna(row.get('cattle_feed_kg')) else 0),
-                    "silage_kg": int(row.get('silage_kg', 0) if pd.notna(row.get('silage_kg')) else 0),
+                    "cattle_feed_kg": int(row.get('cattle feed (kg)', 0) if pd.notna(row.get('cattle feed (kg)')) else 0),
+                    "silage_kg": int(row.get('silage (kg)', 0) if pd.notna(row.get('silage (kg)')) else 0),
                 }
                 
                 beneficiary = BeneficiaryCreate(**beneficiary_data)
