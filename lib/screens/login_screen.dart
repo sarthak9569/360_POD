@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -64,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 final pwd = passwordController.text;
                 try {
                   final response = await http.post(
-                    Uri.parse('http://localhost:8000/api/admin/login'),
+                    Uri.parse('${ApiService.baseUrl}/admin/login'),
                     headers: {'Content-Type': 'application/json'},
                     body: jsonEncode({'username': uname, 'password': pwd}),
                   );
@@ -158,6 +159,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 }
               },
               child: const Text('Login', style: TextStyle(fontSize: 18)),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: _showAdminLoginDialog,
+              child: const Text('Admin Dashboard Login', style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
             ),
           ],
         ),
