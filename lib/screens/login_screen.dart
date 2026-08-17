@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Admin Login'),
           content: Column(
@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -70,20 +70,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     body: jsonEncode({'username': uname, 'password': pwd}),
                   );
                   if (response.statusCode == 200) {
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext); // close dialog
+                    }
                     if (mounted) {
-                      Navigator.pop(context); // close dialog
                       context.go('/admin'); // goto admin
                     }
                   } else {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    if (dialogContext.mounted) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
                         const SnackBar(content: Text('Invalid credentials')),
                       );
                     }
                   }
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (dialogContext.mounted) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       SnackBar(content: Text('Error: $e')),
                     );
                   }
