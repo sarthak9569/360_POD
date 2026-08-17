@@ -41,13 +41,13 @@ async def get_districts():
     # Actually, the requirement says "only show villages that exist in the database for the selected district"
     # But for districts, we could just return the ones in the DB.
     # To be safe and show at least the valid ones:
-    valid_districts = [d for d in districts if d]
+    valid_districts = sorted([d for d in districts if d and str(d).lower() != 'nan'])
     return valid_districts
 
 @app.get("/api/districts/{district}/villages")
 async def get_villages(district: str):
     villages = await beneficiaries_collection.distinct("village", {"district": district})
-    valid_villages = [v for v in villages if v]
+    valid_villages = sorted([v for v in villages if v and str(v).lower() != 'nan'])
     return valid_villages
 
 @app.post("/api/partner/login")
