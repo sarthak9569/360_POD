@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
-class FarmerBase(BaseModel):
+class BeneficiaryCreate(BaseModel):
     tag_no: str
     farmer_name: str
     father_husband_name: str
@@ -11,7 +11,7 @@ class FarmerBase(BaseModel):
     cattle_feed_kg: int
     silage_kg: int
 
-class FarmerInDB(FarmerBase):
+class BeneficiaryInDB(BeneficiaryCreate):
     id: str = Field(alias="_id")
 
 class DeliveryCreate(BaseModel):

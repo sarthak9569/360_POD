@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'dart:convert';
 
 class SubsidyDetailsScreen extends StatefulWidget {
   final String tagNo;
@@ -20,14 +21,44 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
   XFile? itemsPhoto;
   XFile? videoProof;
   bool _isLoading = false;
+  
+  bool _isLoadingData = true;
+  String _errorMsg = '';
+  Map<String, dynamic>? _beneficiaryData;
+  int? _month;
 
-  // Mock data. This should be fetched from the backend using widget.tagNo
-  final Map<String, dynamic> farmerInfo = {
-    'farmerName': 'Dashri Potai',
-    'spouseName': 'Apurv / Etturam Potai',
-    'cattleFeed': 22,
-    'silage': 55,
-  };
+  @override
+  void initState() {
+    super.initState();
+    _fetchDetails();
+  }
+
+  Future<void> _fetchDetails() async {
+    setState(() {
+      _isLoadingData = true;
+      _errorMsg = '';
+    });
+    try {
+      final response = await http.get(Uri.parse('http://localhost:8000/api/qr/${widget.tagNo}'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _beneficiaryData = data['beneficiary'];
+          _month = data['month'];
+        });
+      } else {
+        setState(() {
+          _errorMsg = 'Failed to load details: ${response.statusCode}\nMake sure you scan a valid monthly QR (e.g. 106208111223-M1)';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMsg = 'Error fetching data: $e';
+      });
+    } finally {
+      if (mounted) setState(() => _isLoadingData = false);
+    }
+  }
 
   Future<void> _pickMedia(String type) async {
     XFile? pickedFile;
@@ -59,7 +90,8 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
     });
 
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('http://192.168.1.10:8000/api/deliveries/${widget.tagNo}'));
+      // In production, change localhost to actual IP like 192.168.1.10
+      var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/api/deliveries/${_beneficiaryData?['tag_no'] ?? widget.tagNo}'));
       request.files.add(await http.MultipartFile.fromPath('partner_photo', partnerPhoto!.path));
       request.files.add(await http.MultipartFile.fromPath('receiver_photo', receiverPhoto!.path));
       request.files.add(await http.MultipartFile.fromPath('items_photo', itemsPhoto!.path));
@@ -69,7 +101,7 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        if (mounted) context.go('/completion/${widget.tagNo}');
+        if (mounted) context.go('/completion/${_beneficiaryData?['tag_no'] ?? widget.tagNo}');
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -133,6 +165,37 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingData) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Subsidy Details')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_errorMsg.isNotEmpty || _beneficiaryData == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Subsidy Details')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(_errorMsg, textAlign: TextAlign.center),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => context.pop(),
+                  child: const Text("Go Back"),
+                )
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Subsidy Details')),
       body: SingleChildScrollView(
@@ -146,19 +209,29 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Farmer: ${farmerInfo['farmerName']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text('Spouse/Father: ${farmerInfo['spouseName']}'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text('Month: $_month', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Farmer: ${_beneficiaryData!['farmer_name']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('Father/Husband: ${_beneficiaryData!['father_husband_name']}'),
+                    Text('Village: ${_beneficiaryData!['village']}, District: ${_beneficiaryData!['district']}'),
                     const Divider(height: 32),
                     const Text('Subsidies to Deliver:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ListTile(
                       leading: const Icon(Icons.pets),
                       title: const Text('Cattle Feed'),
-                      trailing: Text('${farmerInfo['cattleFeed']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: Text('${_beneficiaryData!['cattle_feed_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                     ListTile(
                       leading: const Icon(Icons.grass),
                       title: const Text('Silage'),
-                      trailing: Text('${farmerInfo['silage']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      trailing: Text('${_beneficiaryData!['silage_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

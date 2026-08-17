@@ -9,5 +9,5 @@ client = AsyncIOMotorClient(MONGODB_URL)
 db = client[DATABASE_NAME]
 
 # Collections
-farmers_collection = db.get_collection("farmers")
+beneficiaries_collection = db.get_collection("beneficiaries")
 deliveries_collection = db.get_collection("deliveries")

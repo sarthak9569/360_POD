@@ -4,10 +4,11 @@ load_dotenv()
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from database import deliveries_collection
+from database import deliveries_collection, beneficiaries_collection
 from cloudinary_service import upload_media
-from models import DeliveryCreate
+from models import DeliveryCreate, BeneficiaryCreate
 import asyncio
+from pydantic import BaseModel
 
 app = FastAPI(title="Proof of Delivery Backend")
 
@@ -19,6 +20,78 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+class AdminLogin(BaseModel):
+    username: str
+    password: str
+
+@app.post("/api/admin/login")
+async def admin_login(creds: AdminLogin):
+    # Hardcoded for now per plan
+    if creds.username == "admin" and creds.password == "password123":
+        return {"message": "Login successful", "token": "admin-fake-token"}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@app.get("/api/beneficiaries")
+async def get_beneficiaries():
+    cursor = beneficiaries_collection.find({})
+    beneficiaries = await cursor.to_list(length=100)
+    for b in beneficiaries:
+        b['_id'] = str(b['_id'])
+    return beneficiaries
+
+from pdf_service import generate_qr_pdf
+from starlette.background import BackgroundTask
+from fastapi.responses import FileResponse
+
+@app.post("/api/beneficiaries")
+async def create_beneficiary(beneficiary: BeneficiaryCreate):
+    # Check if exists
+    existing = await beneficiaries_collection.find_one({"tag_no": beneficiary.tag_no})
+    if existing:
+        raise HTTPException(status_code=400, detail="Beneficiary with this tag_no already exists")
+    
+    # Insert to DB
+    beneficiary_dict = beneficiary.dict()
+    result = await beneficiaries_collection.insert_one(beneficiary_dict)
+    
+    # Generate QR PDF
+    pdf_path = await generate_qr_pdf(beneficiary_dict)
+    
+    return FileResponse(
+        path=pdf_path, 
+        filename=f"QRs_{beneficiary.tag_no}.pdf", 
+        media_type="application/pdf",
+        background=BackgroundTask(lambda: os.remove(pdf_path) if os.path.exists(pdf_path) else None)
+    )
+
+@app.delete("/api/beneficiaries/{tag_no}")
+async def delete_beneficiary(tag_no: str):
+    result = await beneficiaries_collection.delete_one({"tag_no": tag_no})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Beneficiary not found")
+    return {"message": "Deleted successfully"}
+
+@app.get("/api/qr/{qr_code_id}")
+async def get_qr_data(qr_code_id: str):
+    # qr_code_id format is typically "TAG_NO-MX"
+    parts = qr_code_id.split("-M")
+    if len(parts) != 2:
+        raise HTTPException(status_code=400, detail="Invalid QR code format")
+    
+    tag_no = parts[0]
+    month = parts[1]
+    
+    beneficiary = await beneficiaries_collection.find_one({"tag_no": tag_no})
+    if not beneficiary:
+        raise HTTPException(status_code=404, detail="Beneficiary not found")
+        
+    beneficiary['_id'] = str(beneficiary['_id'])
+    
+    # Return both the beneficiary and the month context
+    return {
+        "beneficiary": beneficiary,
+        "month": int(month)
+    }
 
 @app.post("/api/deliveries/{tag_no}")
 async def complete_delivery(

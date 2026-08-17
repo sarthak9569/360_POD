@@ -6,6 +6,7 @@ import 'screens/subsidy_details_screen.dart';
 import 'screens/order_completion_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/invoice_screen.dart';
+import 'screens/add_beneficiary_screen.dart';
 
 void main() {
   runApp(const ProofOfDeliveryApp());
@@ -44,6 +45,12 @@ final GoRouter _router = GoRouter(
       path: '/admin',
       builder: (BuildContext context, GoRouterState state) {
         return const AdminDashboardScreen();
+      },
+    ),
+    GoRoute(
+      path: '/admin/add',
+      builder: (BuildContext context, GoRouterState state) {
+        return const AddBeneficiaryScreen();
       },
     ),
     GoRoute(

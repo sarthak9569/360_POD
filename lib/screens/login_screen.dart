@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,6 +30,72 @@ class _LoginScreenState extends State<LoginScreen> {
     'Harsngarh'
   ];
 
+  Future<void> _showAdminLoginDialog() async {
+    final usernameController = TextEditingController();
+    final passwordController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Admin Login'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: usernameController,
+                decoration: const InputDecoration(labelText: 'Username'),
+              ),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final uname = usernameController.text;
+                final pwd = passwordController.text;
+                try {
+                  final response = await http.post(
+                    Uri.parse('http://localhost:8000/api/admin/login'),
+                    headers: {'Content-Type': 'application/json'},
+                    body: jsonEncode({'username': uname, 'password': pwd}),
+                  );
+                  if (response.statusCode == 200) {
+                    if (mounted) {
+                      Navigator.pop(context); // close dialog
+                      context.go('/admin'); // goto admin
+                    }
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Invalid credentials')),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Login'),
+            )
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,9 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
         title: const Text('Partner Login'),
         actions: [
           TextButton(
-            onPressed: () {
-              context.go('/admin');
-            },
+            onPressed: _showAdminLoginDialog,
             child: const Text('Admin', style: TextStyle(color: Colors.white)),
           )
         ],
