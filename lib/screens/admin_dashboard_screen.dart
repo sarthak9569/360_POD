@@ -135,17 +135,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.blueGrey,
-                          child: Icon(Icons.person, color: Colors.white),
-                        ),
-                        title: Text('${b['farmer_name']} - ${b['tag_no']}'),
-                        subtitle: Text('Village: ${b['village']} | Cattle Feed: ${b['cattle_feed_kg']}kg, Silage: ${b['silage_kg']}kg'),
-                        trailing: Row(
+                        leading: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.download, color: Colors.blue),
+                              icon: const Icon(Icons.qr_code_2, color: Colors.blue),
                               tooltip: 'Download QR',
                               onPressed: () async {
                                 final url = Uri.parse('${ApiService.baseUrl}/beneficiaries/${b['tag_no']}/qrs/download');
@@ -158,7 +152,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                 }
                               },
                             ),
-                            IconButton(
+                            const CircleAvatar(
+                              backgroundColor: Colors.blueGrey,
+                              child: Icon(Icons.person, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                        title: Text('${b['farmer_name']} - ${b['tag_no']}'),
+                        subtitle: Text('Village: ${b['village']} | Cattle Feed: ${b['cattle_feed_kg']}kg, Silage: ${b['silage_kg']}kg'),
+                        trailing: IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () {
                                 showDialog(
@@ -181,8 +183,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                 );
                               },
                             ),
-                          ],
-                        ),
                       ),
                     );
                   },
