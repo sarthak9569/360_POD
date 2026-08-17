@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import 'dart:io';
 import 'dart:convert';
 
@@ -90,22 +90,21 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
     });
 
     try {
-      // In production, change localhost to actual IP like 192.168.1.10
-      var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/api/deliveries/${_beneficiaryData?['tag_no'] ?? widget.tagNo}'));
-      request.files.add(await http.MultipartFile.fromPath('partner_photo', partnerPhoto!.path));
-      request.files.add(await http.MultipartFile.fromPath('receiver_photo', receiverPhoto!.path));
-      request.files.add(await http.MultipartFile.fromPath('items_photo', itemsPhoto!.path));
-      request.files.add(await http.MultipartFile.fromPath('video_proof', videoProof!.path));
+      final tagToUse = _beneficiaryData?['tag_no'] ?? widget.tagNo;
+      final success = await ApiService.completeDelivery(
+        tagNo: tagToUse,
+        partnerPhoto: partnerPhoto!,
+        receiverPhoto: receiverPhoto!,
+        itemsPhoto: itemsPhoto!,
+        videoProof: videoProof!,
+      );
 
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        if (mounted) context.go('/completion/${_beneficiaryData?['tag_no'] ?? widget.tagNo}');
+      if (success) {
+        if (mounted) context.go('/completion/$tagToUse');
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload: ${response.body}')),
+            const SnackBar(content: Text('Failed to complete delivery.')),
           );
         }
       }

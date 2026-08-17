@@ -17,7 +17,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
   String? _errorMessage;
   Map<String, dynamic>? invoiceData;
   
-  final String baseUrl = 'http://192.168.1.10:8000';
+  final String baseUrl = 'https://proof-of-delivery-2-production.up.railway.app';
 
   @override
   void initState() {
