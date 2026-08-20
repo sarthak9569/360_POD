@@ -24,6 +24,7 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
   bool _isLoading = false;
   
   bool _isLoadingData = true;
+  bool _isInvalidQR = false;
   String _errorMsg = '';
   Map<String, dynamic>? _beneficiaryData;
   int? _month;
@@ -46,6 +47,16 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
         
         if (data['is_completed'] == true) {
           if (mounted) context.pushReplacement('/completion/${widget.tagNo}?alreadyUsed=true');
+          return;
+        }
+        
+        final beneficiaryDistrict = data['beneficiary']['district'];
+        if (ApiService.currentDistrict != null && 
+            beneficiaryDistrict.toString().trim().toLowerCase() != ApiService.currentDistrict!.trim().toLowerCase()) {
+          setState(() {
+            _errorMsg = 'This QR belongs to $beneficiaryDistrict, but you are logged in for ${ApiService.currentDistrict}.';
+            _isInvalidQR = true;
+          });
           return;
         }
         
@@ -195,10 +206,22 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                Icon(
+                  _isInvalidQR ? Icons.cancel : Icons.error_outline, 
+                  size: _isInvalidQR ? 120 : 60, 
+                  color: Colors.red
+                ),
                 const SizedBox(height: 16),
-                Text(_errorMsg, textAlign: TextAlign.center),
-                const SizedBox(height: 24),
+                if (_isInvalidQR) ...[
+                  const Text('INVALID QR', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.red)),
+                  const SizedBox(height: 16),
+                ],
+                Text(
+                  _errorMsg, 
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: _isInvalidQR ? 18 : 16)
+                ),
+                const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: () => context.pop(),
                   child: const Text("Go Back"),

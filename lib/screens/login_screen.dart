@@ -80,6 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => isLoggingIn = false);
       if (success) {
+        ApiService.currentDistrict = selectedDistrict;
         context.go('/home');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login failed: Invalid supervisor name for the selected district.')));

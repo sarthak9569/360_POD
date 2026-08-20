@@ -7,6 +7,9 @@ class ApiService {
   // Base URL provided by Railway
   static const String baseUrl = 'https://proof-of-delivery-2-production.up.railway.app/api';
 
+  // Store the partner's logged in district globally
+  static String? currentDistrict;
+
   /// Fetch a delivery record by tag number
   static Future<Map<String, dynamic>?> getDelivery(String tagNo) async {
     try {
