@@ -4,9 +4,10 @@ load_dotenv()
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from database import deliveries_collection, beneficiaries_collection
+from database import deliveries_collection, beneficiaries_collection, supervisors_collection
 from cloudinary_service import upload_media
-from models import DeliveryCreate, BeneficiaryCreate, PartnerLogin
+from models import DeliveryCreate, BeneficiaryCreate, PartnerLogin, SupervisorCreate
+from bson import ObjectId
 import asyncio
 from pydantic import BaseModel
 import pandas as pd
@@ -34,10 +35,26 @@ SUPERVISORS_MAPPING = {
     "Balrampur": "Millan Haldhar"
 }
 
+@app.on_event("startup")
+async def seed_supervisors():
+    count = await supervisors_collection.count_documents({})
+    if count == 0:
+        for district, name in SUPERVISORS_MAPPING.items():
+            await supervisors_collection.insert_one({
+                "name": name,
+                "districts": [district],
+                "villages": []
+            })
+        print("Seeded initial supervisors.")
+
 @app.get("/api/districts")
 async def get_districts():
-    # Return all static districts defined in SUPERVISORS_MAPPING
-    return list(SUPERVISORS_MAPPING.keys())
+    # Return all unique districts from supervisors
+    supervisors = await supervisors_collection.find({}).to_list(length=1000)
+    districts = set()
+    for s in supervisors:
+        districts.update(s.get("districts", []))
+    return sorted(list(districts))
 
 @app.get("/api/districts/{district}/villages")
 async def get_villages(district: str):
@@ -47,15 +64,59 @@ async def get_villages(district: str):
 
 @app.post("/api/partner/login")
 async def partner_login(payload: PartnerLogin):
-    # Verify if supervisor matches the district (case-insensitive)
-    expected_supervisor = SUPERVISORS_MAPPING.get(payload.district)
-    if not expected_supervisor:
-        raise HTTPException(status_code=403, detail="Invalid district or no supervisor mapped.")
+    # Find supervisor by name and check if they have the requested district
+    # Using case-insensitive regex for name search
+    supervisor = await supervisors_collection.find_one({
+        "name": {"$regex": f"^{payload.supervisor_name}$", "$options": "i"}
+    })
     
-    if expected_supervisor.lower() != payload.supervisor_name.lower():
-        raise HTTPException(status_code=403, detail="Access Denied: Incorrect supervisor name for this district.")
+    if not supervisor:
+        raise HTTPException(status_code=403, detail="Invalid supervisor name.")
+        
+    # Check if the district is in their allocated districts (case-insensitive check)
+    assigned_districts = [d.lower() for d in supervisor.get("districts", [])]
+    if payload.district.lower() not in assigned_districts:
+        raise HTTPException(status_code=403, detail="Access Denied: Supervisor not assigned to this district.")
         
     return {"success": True, "partner_name": payload.partner_name, "district": payload.district, "village": payload.village}
+
+@app.get("/api/supervisors")
+async def get_supervisors():
+    cursor = supervisors_collection.find({})
+    supervisors = await cursor.to_list(length=1000)
+    for s in supervisors:
+        s['_id'] = str(s['_id'])
+    return supervisors
+
+@app.post("/api/supervisors")
+async def create_supervisor(supervisor: SupervisorCreate):
+    supervisor_dict = supervisor.dict()
+    result = await supervisors_collection.insert_one(supervisor_dict)
+    supervisor_dict["_id"] = str(result.inserted_id)
+    return supervisor_dict
+
+@app.put("/api/supervisors/{supervisor_id}")
+async def update_supervisor(supervisor_id: str, supervisor: SupervisorCreate):
+    if not ObjectId.is_valid(supervisor_id):
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    
+    result = await supervisors_collection.update_one(
+        {"_id": ObjectId(supervisor_id)},
+        {"$set": supervisor.dict()}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Supervisor not found")
+    return {"message": "Updated successfully"}
+
+@app.delete("/api/supervisors/{supervisor_id}")
+async def delete_supervisor(supervisor_id: str):
+    if not ObjectId.is_valid(supervisor_id):
+        raise HTTPException(status_code=400, detail="Invalid ID")
+        
+    result = await supervisors_collection.delete_one({"_id": ObjectId(supervisor_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Supervisor not found")
+    return {"message": "Deleted successfully"}
 
 
 @app.post("/api/admin/login")

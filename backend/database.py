@@ -11,3 +11,4 @@ db = client[DATABASE_NAME]
 # Collections
 beneficiaries_collection = db.get_collection("beneficiaries")
 deliveries_collection = db.get_collection("deliveries")
+supervisors_collection = db.get_collection("supervisors")

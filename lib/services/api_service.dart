@@ -113,4 +113,71 @@ class ApiService {
       return false;
     }
   }
+
+  static Future<List<dynamic>> getSupervisors() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/supervisors'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      debugPrint('Error fetching supervisors: $e');
+    }
+    return [];
+  }
+
+  static Future<bool> createSupervisor({
+    required String name,
+    required List<String> districts,
+    required List<String> villages,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/supervisors'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name,
+          'districts': districts,
+          'villages': villages,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error creating supervisor: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateSupervisor({
+    required String id,
+    required String name,
+    required List<String> districts,
+    required List<String> villages,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/supervisors/$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name,
+          'districts': districts,
+          'villages': villages,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error updating supervisor: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteSupervisor(String id) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/supervisors/$id'));
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error deleting supervisor: $e');
+      return false;
+    }
+  }
 }

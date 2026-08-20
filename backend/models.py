@@ -35,3 +35,11 @@ class PartnerLogin(BaseModel):
     village: str
     supervisor_name: str
     partner_name: str
+
+class SupervisorCreate(BaseModel):
+    name: str
+    districts: list[str]
+    villages: list[str]
+
+class SupervisorInDB(SupervisorCreate):
+    id: str = Field(alias="_id")

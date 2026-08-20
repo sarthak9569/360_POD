@@ -7,6 +7,7 @@ import 'screens/order_completion_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/invoice_screen.dart';
 import 'screens/add_beneficiary_screen.dart';
+import 'screens/supervisor_management_screen.dart';
 
 void main() {
   runApp(const ProofOfDeliveryApp());
@@ -59,6 +60,12 @@ final GoRouter _router = GoRouter(
       builder: (BuildContext context, GoRouterState state) {
         final tagNo = state.pathParameters['tagNo']!;
         return InvoiceScreen(tagNo: tagNo);
+      },
+    ),
+    GoRoute(
+      path: '/admin/supervisors',
+      builder: (BuildContext context, GoRouterState state) {
+        return const SupervisorManagementScreen();
       },
     ),
   ],
