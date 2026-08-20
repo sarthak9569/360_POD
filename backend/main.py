@@ -223,83 +223,90 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         
-        # Read without headers first to find the correct row
-        raw_df = pd.read_excel(io.BytesIO(contents), header=None)
+        # Read ALL sheets
+        sheet_dict = pd.read_excel(io.BytesIO(contents), sheet_name=None, header=None)
         
-        header_idx = 0
-        for i, row in raw_df.iterrows():
-            row_str = ' '.join(str(val).lower() for val in row.values)
-            if 'tag no.' in row_str or 'tag no' in row_str or 'beneficiary name' in row_str or 'farmer name' in row_str:
-                header_idx = i
-                break
+        total_inserted = 0
+        total_skipped = 0
+        
+        for sheet_name, raw_df in sheet_dict.items():
+            header_idx = -1
+            for i, row in raw_df.iterrows():
+                row_str = ' '.join(str(val).lower() for val in row.values)
+                if 'tag no.' in row_str or 'tag no' in row_str or 'beneficiary name' in row_str or 'farmer name' in row_str:
+                    header_idx = i
+                    break
+                    
+            if header_idx == -1:
+                print(f"Skipping sheet {sheet_name} as no valid header was found.")
+                continue
                 
-        df = pd.read_excel(io.BytesIO(contents), header=header_idx)
-        df.columns = [str(c).strip().lower() for c in df.columns]
-        
-        # Rename alternative columns to match the expected map
-        rename_map = {}
-        for col in df.columns:
-            if col == 'farmer name':
-                rename_map[col] = 'beneficiary name'
-            elif 'father/husband' in col or 'father / husband' in col or 'father /husband' in col:
-                rename_map[col] = "husband's name"
-            elif col == 'tag no':
-                rename_map[col] = 'tag no.'
-            elif 'cattle feed' in col:
-                rename_map[col] = 'cattle feed (kg)'
-            elif 'silage' in col:
-                rename_map[col] = 'silage (kg)'
-                
-        df.rename(columns=rename_map, inplace=True)
-        
-        # Map file columns to expected keys
-        col_map = {
-            'tag no.': 'tag_no',
-            'beneficiary name': 'farmer_name',
-            "husband's name": 'father_husband_name',
-            'village': 'village',
-            'district': 'district',
-            'cattle feed (kg)': 'cattle_feed_kg',
-            'silage (kg)': 'silage_kg'
-        }
-        
-        missing_cols = set(col_map.keys()) - set(df.columns)
-        if missing_cols:
-            raise HTTPException(status_code=400, detail=f"Missing required columns: {missing_cols}")
+            # Read this specific sheet with the correct header
+            df = pd.read_excel(io.BytesIO(contents), sheet_name=sheet_name, header=header_idx)
+            df.columns = [str(c).strip().lower() for c in df.columns]
             
-        inserted_count = 0
-        skipped_count = 0
-        
-        for _, row in df.iterrows():
-            try:
-                tag_no = str(row.get('tag no.', '')).strip()
-                if not tag_no or tag_no == 'nan':
-                    continue
+            # Rename alternative columns to match the expected map
+            rename_map = {}
+            for col in df.columns:
+                if col == 'farmer name':
+                    rename_map[col] = 'beneficiary name'
+                elif 'father/husband' in col or 'father / husband' in col or 'father /husband' in col:
+                    rename_map[col] = "husband's name"
+                elif col == 'tag no':
+                    rename_map[col] = 'tag no.'
+                elif 'cattle feed' in col:
+                    rename_map[col] = 'cattle feed (kg)'
+                elif 'silage' in col:
+                    rename_map[col] = 'silage (kg)'
                     
-                existing = await beneficiaries_collection.find_one({"tag_no": tag_no})
-                if existing:
-                    skipped_count += 1
-                    continue
+            df.rename(columns=rename_map, inplace=True)
+            
+            # Map file columns to expected keys
+            col_map = {
+                'tag no.': 'tag_no',
+                'beneficiary name': 'farmer_name',
+                "husband's name": 'father_husband_name',
+                'village': 'village',
+                'district': 'district',
+                'cattle feed (kg)': 'cattle_feed_kg',
+                'silage (kg)': 'silage_kg'
+            }
+            
+            missing_cols = set(col_map.keys()) - set(df.columns)
+            if missing_cols:
+                print(f"Skipping sheet {sheet_name} due to missing columns: {missing_cols}")
+                continue
+                
+            for _, row in df.iterrows():
+                try:
+                    tag_no = str(row.get('tag no.', '')).strip()
+                    if not tag_no or tag_no == 'nan':
+                        continue
+                        
+                    existing = await beneficiaries_collection.find_one({"tag_no": tag_no})
+                    if existing:
+                        total_skipped += 1
+                        continue
+                        
+                    beneficiary_data = {
+                        "tag_no": tag_no,
+                        "farmer_name": str(row.get('beneficiary name', '')),
+                        "father_husband_name": str(row.get("husband's name", '')),
+                        "village": str(row.get('village', '')),
+                        "district": str(row.get('district', '')),
+                        "cattle_feed_kg": int(row.get('cattle feed (kg)', 0) if pd.notna(row.get('cattle feed (kg)')) else 0),
+                        "silage_kg": int(row.get('silage (kg)', 0) if pd.notna(row.get('silage (kg)')) else 0),
+                    }
                     
-                beneficiary_data = {
-                    "tag_no": tag_no,
-                    "farmer_name": str(row.get('beneficiary name', '')),
-                    "father_husband_name": str(row.get("husband's name", '')),
-                    "village": str(row.get('village', '')),
-                    "district": str(row.get('district', '')),
-                    "cattle_feed_kg": int(row.get('cattle feed (kg)', 0) if pd.notna(row.get('cattle feed (kg)')) else 0),
-                    "silage_kg": int(row.get('silage (kg)', 0) if pd.notna(row.get('silage (kg)')) else 0),
-                }
-                
-                beneficiary = BeneficiaryCreate(**beneficiary_data)
-                
-                await beneficiaries_collection.insert_one(beneficiary.dict())
-                inserted_count += 1
-            except Exception as e:
-                print(f"Error processing row {row.get('tag_no')}: {e}")
-                skipped_count += 1
-                
-        return {"message": "Upload complete", "inserted": inserted_count, "skipped": skipped_count}
+                    beneficiary = BeneficiaryCreate(**beneficiary_data)
+                    
+                    await beneficiaries_collection.insert_one(beneficiary.dict())
+                    total_inserted += 1
+                except Exception as e:
+                    print(f"Error processing row {row.get('tag_no')} in sheet {sheet_name}: {e}")
+                    total_skipped += 1
+                    
+        return {"message": "Upload complete", "inserted": total_inserted, "skipped": total_skipped}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
