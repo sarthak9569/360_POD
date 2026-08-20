@@ -229,12 +229,24 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
         header_idx = 0
         for i, row in raw_df.iterrows():
             row_str = ' '.join(str(val).lower() for val in row.values)
-            if 'tag no.' in row_str or 'beneficiary name' in row_str:
+            if 'tag no.' in row_str or 'tag no' in row_str or 'beneficiary name' in row_str or 'farmer name' in row_str:
                 header_idx = i
                 break
                 
         df = pd.read_excel(io.BytesIO(contents), header=header_idx)
         df.columns = [str(c).strip().lower() for c in df.columns]
+        
+        # Rename alternative columns to match the expected map
+        rename_map = {}
+        for col in df.columns:
+            if col == 'farmer name':
+                rename_map[col] = 'beneficiary name'
+            elif 'father/husband' in col or 'father / husband' in col or 'father /husband' in col:
+                rename_map[col] = "husband's name"
+            elif col == 'tag no':
+                rename_map[col] = 'tag no.'
+                
+        df.rename(columns=rename_map, inplace=True)
         
         # Map file columns to expected keys
         col_map = {
