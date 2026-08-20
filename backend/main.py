@@ -49,16 +49,35 @@ async def seed_supervisors():
 
 @app.get("/api/districts")
 async def get_districts():
-    # Return all unique districts from supervisors
     supervisors = await supervisors_collection.find({}).to_list(length=1000)
     districts = set()
     for s in supervisors:
         districts.update(s.get("districts", []))
-    return sorted(list(districts))
+        
+    b_districts = await beneficiaries_collection.distinct("district")
+    if b_districts:
+        districts.update(b_districts)
+        
+    valid_districts = sorted([d for d in districts if d and str(d).lower() != 'nan'])
+    return valid_districts
 
 @app.get("/api/districts/{district}/villages")
 async def get_villages(district: str):
-    villages = await beneficiaries_collection.distinct("village", {"district": district})
+    villages = set()
+    
+    # 1. Get from beneficiaries collection
+    b_villages = await beneficiaries_collection.distinct("village", {"district": district})
+    if b_villages:
+        villages.update(b_villages)
+        
+    # 2. Get from supervisors assigned to this district
+    supervisors = await supervisors_collection.find({
+        "districts": {"$regex": f"^{district}$", "$options": "i"}
+    }).to_list(length=1000)
+    
+    for s in supervisors:
+        villages.update(s.get("villages", []))
+        
     valid_villages = sorted([v for v in villages if v and str(v).lower() != 'nan'])
     return valid_villages
 
