@@ -245,6 +245,10 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
                 rename_map[col] = "husband's name"
             elif col == 'tag no':
                 rename_map[col] = 'tag no.'
+            elif 'cattle feed' in col:
+                rename_map[col] = 'cattle feed (kg)'
+            elif 'silage' in col:
+                rename_map[col] = 'silage (kg)'
                 
         df.rename(columns=rename_map, inplace=True)
         
