@@ -61,10 +61,14 @@ async def generate_invoice_pdf(delivery_data: dict) -> str:
     c.drawRightString(width - 40, height - 140, "Bill To")
     
     c.setFont("Helvetica", 10)
-    farmer_name = "master 1"
+    beneficiary = delivery_data.get('beneficiary', {})
+    farmer_name = beneficiary.get('farmer_name', 'Unknown')
+    village = beneficiary.get('village', 'Unknown')
+    district = beneficiary.get('district', 'Unknown')
+    
     c.drawRightString(width - 40, height - 160, farmer_name)
-    c.drawRightString(width - 40, height - 175, "G99H+F9W")
-    c.drawRightString(width - 40, height - 190, "Meerut Division")
+    c.drawRightString(width - 40, height - 175, f"Village: {village}")
+    c.drawRightString(width - 40, height - 190, f"District: {district}")
     
     # 4. Table Header
     table_y = height - 250
@@ -76,20 +80,34 @@ async def generate_invoice_pdf(delivery_data: dict) -> str:
     c.drawString(200, table_y - 15, "Subsidy Item")
     c.drawString(400, table_y - 15, "Quantity")
     
-    # Table Row Background
-    c.setFillColor(colors.HexColor("#f0f5fa"))
-    c.rect(40, table_y - 45, width - 80, 25, fill=1, stroke=0)
+    items = []
+    cattle = beneficiary.get('cattle_feed_kg', 0)
+    silage = beneficiary.get('silage_kg', 0)
     
-    # Table Row Text
-    c.setFillColor(colors.black)
-    c.setFont("Helvetica", 10)
-    c.drawString(45, table_y - 38, "1")
-    c.drawString(200, table_y - 38, "Cattle Feed")
-    c.drawString(400, table_y - 38, "25.0 kg")
+    if cattle > 0:
+        items.append(("Cattle Feed", f"{cattle} kg"))
+    if silage > 0:
+        items.append(("Silage", f"{silage} kg"))
+        
+    if not items:
+        items.append(("Cattle Feed", "25.0 kg"))
+        
+    y_offset = 45
+    for idx, (item_name, item_qty) in enumerate(items, start=1):
+        if idx % 2 == 1:
+            c.setFillColor(colors.HexColor("#f0f5fa"))
+            c.rect(40, table_y - y_offset, width - 80, 25, fill=1, stroke=0)
+            
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 10)
+        c.drawString(45, table_y - y_offset + 7, str(idx))
+        c.drawString(200, table_y - y_offset + 7, item_name)
+        c.drawString(400, table_y - y_offset + 7, item_qty)
+        y_offset += 25
     
     # Table Bottom Line
     c.setStrokeColor(colors.black)
-    c.line(40, table_y - 45, width - 40, table_y - 45)
+    c.line(40, table_y - y_offset + 25, width - 40, table_y - y_offset + 25)
     
     # 5. Proof of Delivery Video & 6. Attached Images
     c.setFont("Helvetica-Bold", 12)

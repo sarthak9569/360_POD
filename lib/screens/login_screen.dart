@@ -229,18 +229,18 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             const SizedBox(height: 16),
             TextField(
-              controller: _supervisorNameController,
+              controller: _partnerNameController,
               decoration: const InputDecoration(
-                labelText: 'Supervisor Name',
+                labelText: 'Partner Name',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: _partnerNameController,
+              controller: _supervisorNameController,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Partner Name (Password)',
+                labelText: 'Supervisor Name (Password)',
                 border: OutlineInputBorder(),
               ),
             ),
