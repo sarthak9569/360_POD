@@ -30,11 +30,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _fetchDistricts() async {
+    setState(() {
+      isLoadingDistricts = true;
+    });
     final fetchedDistricts = await ApiService.getDistricts();
     if (mounted) {
       setState(() {
         districts = fetchedDistricts;
         isLoadingDistricts = false;
+        if (selectedDistrict != null && !districts.contains(selectedDistrict)) {
+          selectedDistrict = null;
+          selectedVillage = null;
+          villages = [];
+        }
       });
     }
   }
@@ -153,6 +161,11 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         title: const Text('Partner Login'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _fetchDistricts,
+            tooltip: 'Refresh Districts',
+          ),
           TextButton(
             onPressed: _showAdminLoginDialog,
             child: const Text('Admin', style: TextStyle(color: Colors.white)),
