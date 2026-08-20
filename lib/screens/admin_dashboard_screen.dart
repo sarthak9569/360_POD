@@ -149,7 +149,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               title: const Text('Supervisors'),
               onTap: () {
                 context.pop();
-                context.go('/admin/supervisors');
+                context.push('/admin/supervisors');
               },
             ),
           ],

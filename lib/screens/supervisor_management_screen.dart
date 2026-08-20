@@ -179,7 +179,7 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
               title: const Text('Beneficiaries'),
               onTap: () {
                 context.pop(); // close drawer
-                context.go('/admin'); // Assuming /admin is the beneficiaries dashboard
+                context.push('/admin'); // Assuming /admin is the beneficiaries dashboard
               },
             ),
             ListTile(
