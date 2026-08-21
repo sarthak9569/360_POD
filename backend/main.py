@@ -154,7 +154,7 @@ async def admin_login(creds: AdminLogin):
 @app.get("/api/beneficiaries")
 async def get_beneficiaries():
     cursor = beneficiaries_collection.find({})
-    beneficiaries = await cursor.to_list(length=100)
+    beneficiaries = await cursor.to_list(length=10000)
     for b in beneficiaries:
         b['_id'] = str(b['_id'])
     return beneficiaries
@@ -162,7 +162,7 @@ async def get_beneficiaries():
 @app.get("/api/beneficiaries/qrs/download")
 async def download_all_qrs():
     cursor = beneficiaries_collection.find({})
-    beneficiaries = await cursor.to_list(length=1000)
+    beneficiaries = await cursor.to_list(length=10000)
     
     if not beneficiaries:
         raise HTTPException(status_code=404, detail="No active beneficiaries found")
