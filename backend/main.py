@@ -12,6 +12,7 @@ import asyncio
 from pydantic import BaseModel
 import pandas as pd
 import io
+import hashlib
 
 app = FastAPI(title="Proof of Delivery Backend")
 
@@ -226,8 +227,15 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
         # Read ALL sheets
         sheet_dict = pd.read_excel(io.BytesIO(contents), sheet_name=None, header=None)
         
-        total_inserted = 0
-        total_skipped = 0
+        total_rows = 0
+        successfully_imported = 0
+        beneficiaries_created = 0
+        beneficiaries_reused = 0
+        distributions_created = 0
+        skipped_rows = 0
+        invalid_rows = []
+        duplicate_conflicting_rows = []
+        validation_errors = []
         
         for sheet_name, raw_df in sheet_dict.items():
             header_idx = -1
@@ -277,36 +285,134 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
                 print(f"Skipping sheet {sheet_name} due to missing columns: {missing_cols}")
                 continue
                 
-            for _, row in df.iterrows():
+            for row_idx, row in df.iterrows():
+                total_rows += 1
                 try:
                     tag_no = str(row.get('tag no.', '')).strip()
                     if not tag_no or tag_no == 'nan':
+                        invalid_rows.append({"sheet": sheet_name, "row": row_idx + 2, "tag_no": tag_no, "reason": "Missing tag_no"})
+                        skipped_rows += 1
                         continue
-                        
+                    
+                    # Parse quantities safely
+                    def parse_qty(val):
+                        if pd.isna(val) or val == '' or str(val).strip() == '-':
+                            return 0
+                        try:
+                            return int(float(val))
+                        except ValueError:
+                            raise ValueError(f"Invalid numeric value: {val}")
+                            
+                    try:
+                        cattle_feed = parse_qty(row.get('cattle feed (kg)'))
+                        silage = parse_qty(row.get('silage (kg)'))
+                    except ValueError as e:
+                        invalid_rows.append({"sheet": sheet_name, "row": row_idx + 2, "tag_no": tag_no, "reason": str(e)})
+                        skipped_rows += 1
+                        continue
+
+                    # Identity info
+                    farmer_name = str(row.get('beneficiary name', '')).strip()
+                    if farmer_name == 'nan': farmer_name = ''
+                    father_name = str(row.get("husband's name", '')).strip()
+                    if father_name == 'nan': father_name = ''
+                    village = str(row.get('village', '')).strip()
+                    if village == 'nan': village = ''
+                    district = str(row.get('district', '')).strip()
+                    if district == 'nan': district = ''
+
+                    if not farmer_name:
+                        invalid_rows.append({"sheet": sheet_name, "row": row_idx + 2, "tag_no": tag_no, "reason": "Missing beneficiary name"})
+                        skipped_rows += 1
+                        continue
+
+                    # Idempotency hash (use raw row values + tag_no)
+                    raw_row_str = "".join([str(v) for v in row.values])
+                    import_hash = hashlib.sha256(f"{tag_no}_{raw_row_str}".encode()).hexdigest()
+
                     existing = await beneficiaries_collection.find_one({"tag_no": tag_no})
+                    
                     if existing:
-                        total_skipped += 1
-                        continue
+                        # Identity mismatch check (allow minor case differences)
+                        ex_name = str(existing.get('farmer_name', '')).strip().lower()
+                        ex_village = str(existing.get('village', '')).strip().lower()
                         
-                    beneficiary_data = {
-                        "tag_no": tag_no,
-                        "farmer_name": str(row.get('beneficiary name', '')),
-                        "father_husband_name": str(row.get("husband's name", '')),
-                        "village": str(row.get('village', '')),
-                        "district": str(row.get('district', '')),
-                        "cattle_feed_kg": int(row.get('cattle feed (kg)', 0) if pd.notna(row.get('cattle feed (kg)')) else 0),
-                        "silage_kg": int(row.get('silage (kg)', 0) if pd.notna(row.get('silage (kg)')) else 0),
-                    }
-                    
-                    beneficiary = BeneficiaryCreate(**beneficiary_data)
-                    
-                    await beneficiaries_collection.insert_one(beneficiary.dict())
-                    total_inserted += 1
+                        if ex_name and farmer_name.lower() != ex_name:
+                            duplicate_conflicting_rows.append({
+                                "sheet": sheet_name, "row": row_idx + 2, "tag_no": tag_no, 
+                                "reason": f"Identity mismatch. Excel: {farmer_name} | DB: {existing.get('farmer_name')}"
+                            })
+                            skipped_rows += 1
+                            continue
+
+                        # Check if distribution already imported
+                        existing_dists = existing.get('distributions', [])
+                        if any(d.get('import_hash') == import_hash for d in existing_dists):
+                            # Idempotent duplicate
+                            skipped_rows += 1
+                            continue
+                            
+                        # Add new distribution and increment totals
+                        new_dist = {
+                            "cattle_feed_kg": cattle_feed,
+                            "silage_kg": silage,
+                            "import_hash": import_hash
+                        }
+                        
+                        await beneficiaries_collection.update_one(
+                            {"tag_no": tag_no},
+                            {
+                                "$push": {"distributions": new_dist},
+                                "$inc": {
+                                    "cattle_feed_kg": cattle_feed,
+                                    "silage_kg": silage
+                                }
+                            }
+                        )
+                        beneficiaries_reused += 1
+                        distributions_created += 1
+                        successfully_imported += 1
+                        
+                    else:
+                        # Create new beneficiary
+                        beneficiary_data = {
+                            "tag_no": tag_no,
+                            "farmer_name": farmer_name,
+                            "father_husband_name": father_name,
+                            "village": village,
+                            "district": district,
+                            "cattle_feed_kg": cattle_feed,
+                            "silage_kg": silage,
+                            "distributions": [{
+                                "cattle_feed_kg": cattle_feed,
+                                "silage_kg": silage,
+                                "import_hash": import_hash
+                            }]
+                        }
+                        
+                        await beneficiaries_collection.insert_one(beneficiary_data)
+                        beneficiaries_created += 1
+                        distributions_created += 1
+                        successfully_imported += 1
+                        
                 except Exception as e:
-                    print(f"Error processing row {row.get('tag_no')} in sheet {sheet_name}: {e}")
-                    total_skipped += 1
+                    validation_errors.append({"sheet": sheet_name, "row": row_idx + 2, "tag_no": tag_no, "reason": str(e)})
+                    skipped_rows += 1
                     
-        return {"message": "Upload complete", "inserted": total_inserted, "skipped": total_skipped}
+        return {
+            "message": "Upload complete",
+            "summary": {
+                "Total rows": total_rows,
+                "Successfully imported": successfully_imported,
+                "Beneficiaries created": beneficiaries_created,
+                "Existing beneficiaries reused": beneficiaries_reused,
+                "Distribution records created": distributions_created,
+                "Skipped rows": skipped_rows,
+            },
+            "Invalid rows": invalid_rows,
+            "Duplicate/conflicting rows": duplicate_conflicting_rows,
+            "Validation errors": validation_errors
+        }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
