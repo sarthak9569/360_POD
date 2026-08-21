@@ -319,7 +319,7 @@ async def delete_beneficiary(tag_no: str):
     return {"message": "Deleted successfully"}
 
 @app.get("/api/qr/{qr_code_id}")
-async def get_qr_data(qr_code_id: str):
+async def get_qr_data(qr_code_id: str, supervisor_district: str = None):
     # qr_code_id format is typically "TAG_NO-MX"
     parts = qr_code_id.split("-M")
     if len(parts) != 2:
@@ -331,6 +331,15 @@ async def get_qr_data(qr_code_id: str):
     beneficiary = await beneficiaries_collection.find_one({"tag_no": tag_no})
     if not beneficiary:
         raise HTTPException(status_code=404, detail="Beneficiary not found")
+        
+    if supervisor_district:
+        b_district = str(beneficiary.get('district', '')).strip().lower()
+        s_district = supervisor_district.strip().lower()
+        if b_district != s_district:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"INVALID QR: This QR belongs to {beneficiary.get('district')}, but you are logged in for {supervisor_district}."
+            )
         
     # Check if this specific month's QR code has already been used
     existing_delivery = await deliveries_collection.find_one({"tag_no": qr_code_id})
@@ -351,9 +360,24 @@ async def complete_delivery(
     partner_photo: UploadFile = File(...),
     receiver_photo: UploadFile = File(...),
     items_photo: UploadFile = File(...),
-    video_proof: UploadFile = File(...)
+    video_proof: UploadFile = File(...),
+    supervisor_district: str = Form(None)
 ):
     try:
+        # Check authorization if supervisor_district is provided
+        if supervisor_district:
+            parts = tag_no.split("-M")
+            b_tag_no = parts[0] if len(parts) > 0 else tag_no
+            beneficiary = await beneficiaries_collection.find_one({"tag_no": b_tag_no})
+            if beneficiary:
+                b_district = str(beneficiary.get('district', '')).strip().lower()
+                s_district = supervisor_district.strip().lower()
+                if b_district != s_district:
+                    raise HTTPException(
+                        status_code=403, 
+                        detail=f"Unauthorized: Cannot complete delivery for {beneficiary.get('district')} while logged in for {supervisor_district}"
+                    )
+
         # Read files into memory for uploading
         partner_bytes = await partner_photo.read()
         receiver_bytes = await receiver_photo.read()

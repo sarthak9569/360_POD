@@ -35,6 +35,10 @@ class ApiService {
     try {
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/deliveries/$tagNo'));
       
+      if (currentDistrict != null) {
+        request.fields['supervisor_district'] = currentDistrict!;
+      }
+      
       request.files.add(await http.MultipartFile.fromPath('partner_photo', partnerPhoto.path));
       request.files.add(await http.MultipartFile.fromPath('receiver_photo', receiverPhoto.path));
       request.files.add(await http.MultipartFile.fromPath('items_photo', itemsPhoto.path));

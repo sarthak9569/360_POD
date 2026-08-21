@@ -41,7 +41,8 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
       _errorMsg = '';
     });
     try {
-      final response = await http.get(Uri.parse('${ApiService.baseUrl}/qr/${widget.tagNo}'));
+      final districtQuery = ApiService.currentDistrict != null ? '?supervisor_district=${Uri.encodeComponent(ApiService.currentDistrict!)}' : '';
+      final response = await http.get(Uri.parse('${ApiService.baseUrl}/qr/${widget.tagNo}$districtQuery'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
@@ -75,6 +76,7 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
         
         setState(() {
           _errorMsg = errMsg;
+          if (response.statusCode == 403) _isInvalidQR = true;
         });
       }
     } catch (e) {
