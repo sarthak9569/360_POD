@@ -133,6 +133,10 @@ class ApiService {
     return [];
   }
 
+  static void logout() {
+    currentDistrict = null;
+  }
+
   static Future<bool> createSupervisor({
     required String name,
     required List<String> districts,

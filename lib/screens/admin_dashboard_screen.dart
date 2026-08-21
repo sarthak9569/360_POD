@@ -136,18 +136,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0D1117), // Deep Dark Background
       appBar: AppBar(
-        title: const Text('Beneficiaries Dashboard'),
-        backgroundColor: Colors.blueGrey,
-        foregroundColor: Colors.white,
+        title: const Text('SECURE ZONE // ADMIN', style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+        backgroundColor: const Color(0xFF161B22), // Darker App Bar
+        foregroundColor: Colors.greenAccent, // Neon Accent
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.upload_file),
+            icon: const Icon(Icons.upload_file, color: Colors.greenAccent),
             tooltip: 'Upload Excel',
             onPressed: _uploadExcel,
           ),
           IconButton(
-            icon: const Icon(Icons.qr_code_2),
+            icon: const Icon(Icons.qr_code_2, color: Colors.greenAccent),
             tooltip: 'Download All QRs',
             onPressed: () async {
               final url = Uri.parse('${ApiService.baseUrl}/beneficiaries/qrs/download');
@@ -163,54 +165,83 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ],
       ),
       drawer: Drawer(
+        backgroundColor: const Color(0xFF161B22),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.blueGrey,
+                color: Color(0xFF0D1117),
+                border: Border(bottom: BorderSide(color: Colors.greenAccent, width: 2)),
               ),
-              child: Text(
-                'Admin Menu',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(Icons.security, size: 50, color: Colors.greenAccent),
+                  SizedBox(height: 10),
+                  Text(
+                    'ADMIN ACCESS',
+                    style: TextStyle(color: Colors.greenAccent, fontSize: 20, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2),
+                  ),
+                ],
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.people),
-              title: const Text('Beneficiaries'),
+              leading: const Icon(Icons.people_outline, color: Colors.white70),
+              title: const Text('Beneficiaries', style: TextStyle(color: Colors.white70, fontFamily: 'Courier')),
               onTap: () {
                 context.pop(); // close drawer
               },
             ),
             ListTile(
-              leading: const Icon(Icons.admin_panel_settings),
-              title: const Text('Supervisors'),
+              leading: const Icon(Icons.admin_panel_settings, color: Colors.white70),
+              title: const Text('Supervisors', style: TextStyle(color: Colors.white70, fontFamily: 'Courier')),
               onTap: () {
                 context.pop();
                 context.push('/admin/supervisors');
+              },
+            ),
+            const Divider(color: Colors.white24, indent: 16, endIndent: 16),
+            ListTile(
+              leading: const Icon(Icons.power_settings_new, color: Colors.redAccent),
+              title: const Text('LOGOUT', style: TextStyle(color: Colors.redAccent, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2)),
+              onTap: () {
+                ApiService.logout();
+                context.go('/');
               },
             ),
           ],
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.greenAccent))
           : Column(
               children: [
-                Padding(
+                Container(
+                  color: const Color(0xFF161B22),
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
                       Expanded(
                         flex: 2,
                         child: TextField(
+                          style: const TextStyle(color: Colors.greenAccent, fontFamily: 'Courier'),
                           decoration: InputDecoration(
-                            hintText: 'Search Name, Village, Tag...',
-                            prefixIcon: const Icon(Icons.search),
+                            hintText: 'Search Name, Tag...',
+                            hintStyle: TextStyle(color: Colors.greenAccent.withOpacity(0.5), fontFamily: 'Courier'),
+                            prefixIcon: const Icon(Icons.search, color: Colors.greenAccent),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(4.0),
+                              borderSide: BorderSide(color: Colors.greenAccent.withOpacity(0.3)),
                             ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(4.0),
+                              borderSide: const BorderSide(color: Colors.greenAccent),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFF0D1117),
                           ),
                           onChanged: (value) {
                             _searchQuery = value;
@@ -221,14 +252,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         flex: 1,
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: _selectedDistrict ?? 'All Districts',
-                          items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))).toList(),
-                          onChanged: (value) {
-                            _selectedDistrict = value;
-                            _applyFilters();
-                          },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0D1117),
+                            border: Border.all(color: Colors.greenAccent.withOpacity(0.3)),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              dropdownColor: const Color(0xFF161B22),
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down, color: Colors.greenAccent),
+                              style: const TextStyle(color: Colors.greenAccent, fontFamily: 'Courier'),
+                              value: _selectedDistrict ?? 'All Districts',
+                              items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))).toList(),
+                              onChanged: (value) {
+                                _selectedDistrict = value;
+                                _applyFilters();
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -236,75 +280,84 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 Expanded(
                   child: _filteredBeneficiaries.isEmpty
-                      ? const Center(child: Text("No beneficiaries found."))
+                      ? const Center(child: Text("NO DATA FOUND", style: TextStyle(color: Colors.redAccent, fontFamily: 'Courier', letterSpacing: 2)))
                       : ListView.builder(
                           itemCount: _filteredBeneficiaries.length,
                           itemBuilder: (context, index) {
                             final b = _filteredBeneficiaries[index];
                             return Card(
+                              color: const Color(0xFF161B22),
+                              shape: RoundedRectangleBorder(
+                                side: BorderSide(color: Colors.greenAccent.withOpacity(0.2)),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: ListTile(
-                        leading: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.qr_code_2, color: Colors.blue),
-                              tooltip: 'Download QR',
-                              onPressed: () async {
-                                final url = Uri.parse('${ApiService.baseUrl}/beneficiaries/${b['tag_no']}/qrs/download');
-                                try {
-                                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch download URL: $e')));
-                                  }
-                                }
-                              },
-                            ),
-                            const CircleAvatar(
-                              backgroundColor: Colors.blueGrey,
-                              child: Icon(Icons.person, color: Colors.white),
-                            ),
-                          ],
+                              child: ListTile(
+                                leading: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.qr_code_2, color: Colors.greenAccent),
+                                      tooltip: 'Download QR',
+                                      onPressed: () async {
+                                        final url = Uri.parse('${ApiService.baseUrl}/beneficiaries/${b['tag_no']}/qrs/download');
+                                        try {
+                                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                                          }
+                                        }
+                                      },
+                                    ),
+                                    const CircleAvatar(
+                                      backgroundColor: Color(0xFF0D1117),
+                                      child: Icon(Icons.person, color: Colors.greenAccent),
+                                    ),
+                                  ],
+                                ),
+                                title: Text('${b['farmer_name']} - ${b['tag_no']}', style: const TextStyle(color: Colors.white, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+                                subtitle: Text('Village: ${b['village']}\nFeed: ${b['cattle_feed_kg']}kg | Silage: ${b['silage_kg']}kg', style: const TextStyle(color: Colors.white70, fontFamily: 'Courier')),
+                                isThreeLine: true,
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        backgroundColor: const Color(0xFF161B22),
+                                        title: const Text('WARNING: DELETION', style: TextStyle(color: Colors.redAccent, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+                                        content: Text('PURGE ${b['farmer_name']} FROM DATABASE?', style: const TextStyle(color: Colors.white70, fontFamily: 'Courier')),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ABORT', style: TextStyle(color: Colors.greenAccent, fontFamily: 'Courier'))),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.black),
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              _deleteBeneficiary(b['tag_no']);
+                                            },
+                                            child: const Text('PURGE', style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+                                          )
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        title: Text('${b['farmer_name']} - ${b['tag_no']}'),
-                        subtitle: Text('Village: ${b['village']} | Cattle Feed: ${b['cattle_feed_kg']}kg, Silage: ${b['silage_kg']}kg'),
-                        trailing: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Delete Beneficiary'),
-                                    content: Text('Are you sure you want to delete ${b['farmer_name']}?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          _deleteBeneficiary(b['tag_no']);
-                                        },
-                                        child: const Text('Delete'),
-                                      )
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                      ),
-                    );
-                  },
-                ),
                 ),
               ],
             ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.greenAccent,
+        foregroundColor: Colors.black,
         onPressed: () async {
           await context.push('/admin/add');
           _fetchBeneficiaries(); // Refresh when back
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_moderator),
       ),
     );
   }
