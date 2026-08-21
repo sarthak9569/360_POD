@@ -8,8 +8,9 @@ class BeneficiaryCreate(BaseModel):
     father_husband_name: str
     village: str
     district: str
-    cattle_feed_kg: int
-    silage_kg: int
+    cattle_feed_kg: int = 0
+    silage_kg: int = 0
+    mineral_mixture_kg: int = 0
 
 class BeneficiaryInDB(BeneficiaryCreate):
     id: str = Field(alias="_id")

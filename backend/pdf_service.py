@@ -83,11 +83,14 @@ async def generate_invoice_pdf(delivery_data: dict) -> str:
     items = []
     cattle = beneficiary.get('cattle_feed_kg', 0)
     silage = beneficiary.get('silage_kg', 0)
+    mineral = beneficiary.get('mineral_mixture_kg', 0)
     
     if cattle > 0:
         items.append(("Cattle Feed", f"{cattle} kg"))
     if silage > 0:
         items.append(("Silage", f"{silage} kg"))
+    if mineral > 0:
+        items.append(("Mineral Mixture", f"{mineral} kg"))
         
     if not items:
         items.append(("Cattle Feed", "25.0 kg"))

@@ -262,16 +262,24 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
                     Text('Village: ${_beneficiaryData!['village']}, District: ${_beneficiaryData!['district']}'),
                     const Divider(height: 32),
                     const Text('Subsidies to Deliver:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ListTile(
-                      leading: const Icon(Icons.pets),
-                      title: const Text('Cattle Feed'),
-                      trailing: Text('${_beneficiaryData!['cattle_feed_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.grass),
-                      title: const Text('Silage'),
-                      trailing: Text('${_beneficiaryData!['silage_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ),
+                    if ((_beneficiaryData!['cattle_feed_kg'] ?? 0) > 0)
+                      ListTile(
+                        leading: const Icon(Icons.pets),
+                        title: const Text('Cattle Feed'),
+                        trailing: Text('${_beneficiaryData!['cattle_feed_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    if ((_beneficiaryData!['silage_kg'] ?? 0) > 0)
+                      ListTile(
+                        leading: const Icon(Icons.grass),
+                        title: const Text('Silage'),
+                        trailing: Text('${_beneficiaryData!['silage_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    if ((_beneficiaryData!['mineral_mixture_kg'] ?? 0) > 0)
+                      ListTile(
+                        leading: const Icon(Icons.science),
+                        title: const Text('Mineral Mixture'),
+                        trailing: Text('${_beneficiaryData!['mineral_mixture_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
                   ],
                 ),
               ),

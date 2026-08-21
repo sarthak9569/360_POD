@@ -5,14 +5,18 @@ import cloudinary.uploader
 # Cloudinary automatically picks up the CLOUDINARY_URL from the environment
 cloudinary.config()
 
-def upload_media(file_path: str, is_video: bool = False) -> str:
+def upload_media(file_path: str, is_video: bool = False, subfolder: str = "") -> str:
     """
     Uploads an image or video to Cloudinary in a separate folder for this project.
     """
     try:
         # We specify the "folder" parameter here to keep files separate
+        folder_path = "pod2_assets"
+        if subfolder:
+            folder_path = f"pod2_assets/{subfolder}"
+            
         options = {
-            "folder": "pod2_assets", # ALL files for this project go here!
+            "folder": folder_path,
             "resource_type": "video" if is_video else "image"
         }
         

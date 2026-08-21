@@ -306,6 +306,7 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
                     try:
                         cattle_feed = parse_qty(row.get('cattle feed (kg)'))
                         silage = parse_qty(row.get('silage (kg)'))
+                        mineral = parse_qty(row.get('mineral mixture (kg)'))
                     except ValueError as e:
                         invalid_rows.append({"sheet": sheet_name, "row": row_idx + 2, "tag_no": tag_no, "reason": str(e)})
                         skipped_rows += 1
@@ -356,6 +357,7 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
                         new_dist = {
                             "cattle_feed_kg": cattle_feed,
                             "silage_kg": silage,
+                            "mineral_mixture_kg": mineral,
                             "import_hash": import_hash
                         }
                         
@@ -365,7 +367,8 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
                                 "$push": {"distributions": new_dist},
                                 "$inc": {
                                     "cattle_feed_kg": cattle_feed,
-                                    "silage_kg": silage
+                                    "silage_kg": silage,
+                                    "mineral_mixture_kg": mineral
                                 }
                             }
                         )
@@ -383,9 +386,11 @@ async def upload_beneficiaries(file: UploadFile = File(...)):
                             "district": district,
                             "cattle_feed_kg": cattle_feed,
                             "silage_kg": silage,
+                            "mineral_mixture_kg": mineral,
                             "distributions": [{
                                 "cattle_feed_kg": cattle_feed,
                                 "silage_kg": silage,
+                                "mineral_mixture_kg": mineral,
                                 "import_hash": import_hash
                             }]
                         }
@@ -493,15 +498,16 @@ async def complete_delivery(
         # Temporary files are needed for cloudinary SDK upload
         import tempfile
         import os
+        from pdf_service import generate_invoice_pdf
 
-        def temp_upload(file_bytes, is_video=False):
+        def temp_upload(file_bytes, is_video=False, subfolder="delivery_proofs"):
             suffix = ".mp4" if is_video else ".jpg"
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as f:
                 f.write(file_bytes)
                 temp_path = f.name
             
             try:
-                url = upload_media(temp_path, is_video=is_video)
+                url = upload_media(temp_path, is_video=is_video, subfolder=subfolder)
                 return url
             finally:
                 os.remove(temp_path)
@@ -509,10 +515,10 @@ async def complete_delivery(
         # Upload files concurrently to cloudinary to speed up response
         loop = asyncio.get_event_loop()
         partner_url, receiver_url, items_url, video_url = await asyncio.gather(
-            loop.run_in_executor(None, temp_upload, partner_bytes, False),
-            loop.run_in_executor(None, temp_upload, receiver_bytes, False),
-            loop.run_in_executor(None, temp_upload, items_bytes, False),
-            loop.run_in_executor(None, temp_upload, video_bytes, True)
+            loop.run_in_executor(None, temp_upload, partner_bytes, False, "delivery_proofs"),
+            loop.run_in_executor(None, temp_upload, receiver_bytes, False, "delivery_proofs"),
+            loop.run_in_executor(None, temp_upload, items_bytes, False, "delivery_proofs"),
+            loop.run_in_executor(None, temp_upload, video_bytes, True, "delivery_proofs")
         )
 
         if not all([partner_url, receiver_url, items_url, video_url]):
@@ -528,6 +534,30 @@ async def complete_delivery(
             "video_proof_url": video_url,
             "status": "delivered"
         }
+        
+        # We need the beneficiary data to generate the invoice
+        parts = tag_no.split("-M")
+        if len(parts) > 0:
+            ben_tag = parts[0]
+            beneficiary = await beneficiaries_collection.find_one({"tag_no": ben_tag})
+            if beneficiary:
+                delivery_data['beneficiary'] = beneficiary
+
+        # Generate Invoice PDF
+        invoice_pdf_path = await generate_invoice_pdf(delivery_data)
+        
+        # Upload Invoice to Cloudinary
+        def upload_pdf(path):
+            return upload_media(path, is_video=False, subfolder="invoices")
+            
+        invoice_url = await loop.run_in_executor(None, upload_pdf, invoice_pdf_path)
+        os.remove(invoice_pdf_path)
+        
+        if invoice_url:
+            delivery_data["invoice_url"] = invoice_url
+
+        if 'beneficiary' in delivery_data:
+            del delivery_data['beneficiary'] # Don't save full beneficiary in delivery doc
 
         # Insert into MongoDB
         result = await deliveries_collection.insert_one(delivery_data)
@@ -538,7 +568,7 @@ async def complete_delivery(
         print(f"Error processing delivery: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from starlette.background import BackgroundTask
 from pdf_service import generate_invoice_pdf
 
@@ -565,6 +595,9 @@ async def get_invoice_pdf(tag_no: str):
     delivery = await deliveries_collection.find_one({"tag_no": tag_no})
     if not delivery:
         raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    if "invoice_url" in delivery and delivery["invoice_url"]:
+        return RedirectResponse(url=delivery["invoice_url"])
     
     pdf_path = await generate_invoice_pdf(delivery)
     return FileResponse(
