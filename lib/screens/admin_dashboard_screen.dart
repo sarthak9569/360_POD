@@ -105,8 +105,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           final respStr = await response.stream.bytesToString();
           final data = jsonDecode(respStr);
           if (mounted) {
+            final summary = data["summary"] ?? {};
+            final imported = summary["Successfully imported"] ?? 0;
+            final skipped = summary["Skipped rows"] ?? 0;
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Upload complete: ${data["inserted"]} inserted, ${data["skipped"]} skipped')),
+              SnackBar(content: Text('Upload complete: $imported inserted, $skipped skipped')),
             );
           }
           _fetchBeneficiaries();
