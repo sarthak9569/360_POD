@@ -15,7 +15,11 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<dynamic> _beneficiaries = [];
+  List<dynamic> _filteredBeneficiaries = [];
   bool _isLoading = true;
+
+  String _searchQuery = '';
+  String? _selectedDistrict;
 
   @override
   void initState() {
@@ -30,6 +34,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (response.statusCode == 200) {
         setState(() {
           _beneficiaries = jsonDecode(response.body);
+          _applyFilters();
         });
       }
     } catch (e) {
@@ -37,6 +42,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _filteredBeneficiaries = _beneficiaries.where((b) {
+        final farmerName = (b['farmer_name'] ?? '').toString().toLowerCase();
+        final village = (b['village'] ?? '').toString().toLowerCase();
+        final tagNo = (b['tag_no'] ?? '').toString().toLowerCase();
+        final district = (b['district'] ?? '').toString();
+        
+        final matchesSearch = _searchQuery.isEmpty || 
+                              farmerName.contains(_searchQuery.toLowerCase()) || 
+                              village.contains(_searchQuery.toLowerCase()) || 
+                              tagNo.contains(_searchQuery.toLowerCase());
+        
+        final matchesDistrict = _selectedDistrict == null || _selectedDistrict == 'All Districts' || district == _selectedDistrict;
+        
+        return matchesSearch && matchesDistrict;
+      }).toList();
+    });
+  }
+
+  List<String> get _districts {
+    final districts = _beneficiaries
+        .map((b) => (b['district'] ?? '').toString())
+        .where((d) => d.isNotEmpty)
+        .toSet()
+        .toList();
+    districts.sort();
+    return ['All Districts', ...districts];
   }
 
   Future<void> _deleteBeneficiary(String tagNo) async {
@@ -157,14 +192,54 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _beneficiaries.isEmpty
-              ? const Center(child: Text("No beneficiaries found."))
-              : ListView.builder(
-                  itemCount: _beneficiaries.length,
-                  itemBuilder: (context, index) {
-                    final b = _beneficiaries[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search Name, Village, Tag...',
+                            prefixIcon: const Icon(Icons.search),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                          ),
+                          onChanged: (value) {
+                            _searchQuery = value;
+                            _applyFilters();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 1,
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: _selectedDistrict ?? 'All Districts',
+                          items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))).toList(),
+                          onChanged: (value) {
+                            _selectedDistrict = value;
+                            _applyFilters();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _filteredBeneficiaries.isEmpty
+                      ? const Center(child: Text("No beneficiaries found."))
+                      : ListView.builder(
+                          itemCount: _filteredBeneficiaries.length,
+                          itemBuilder: (context, index) {
+                            final b = _filteredBeneficiaries[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: ListTile(
                         leading: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -218,6 +293,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     );
                   },
                 ),
+                ),
+              ],
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await context.push('/admin/add');
