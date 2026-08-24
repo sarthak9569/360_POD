@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 
 class OrderCompletionScreen extends StatefulWidget {
@@ -163,12 +164,21 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
           const SizedBox(height: 32),
           ElevatedButton.icon(
             icon: const Icon(Icons.receipt_long),
-            label: const Text('View / Download Invoice'),
+            label: const Text('Download Invoice'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            onPressed: () {
-              context.push('/invoice/${widget.tagNo}');
+            onPressed: () async {
+              final url = Uri.parse(ApiService.getInvoicePdfUrl(widget.tagNo));
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not open invoice')),
+                  );
+                }
+              }
             },
           ),
           const SizedBox(height: 16),
