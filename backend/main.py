@@ -599,6 +599,13 @@ async def get_invoice_pdf(tag_no: str):
     if "invoice_url" in delivery and delivery["invoice_url"]:
         return RedirectResponse(url=delivery["invoice_url"])
     
+    parts = tag_no.split("-M")
+    if len(parts) > 0:
+        ben_tag = parts[0]
+        beneficiary = await beneficiaries_collection.find_one({"tag_no": ben_tag})
+        if beneficiary:
+            delivery['beneficiary'] = beneficiary
+            
     pdf_path = await generate_invoice_pdf(delivery)
     return FileResponse(
         path=pdf_path, 
