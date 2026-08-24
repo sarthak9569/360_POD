@@ -170,12 +170,12 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
             ),
             onPressed: () async {
               final url = Uri.parse(ApiService.getInvoicePdfUrl(widget.tagNo));
-              if (await canLaunchUrl(url)) {
+              try {
                 await launchUrl(url, mode: LaunchMode.externalApplication);
-              } else {
+              } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not open invoice')),
+                    SnackBar(content: Text('Could not open invoice: $e')),
                   );
                 }
               }
