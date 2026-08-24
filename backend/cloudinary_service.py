@@ -15,9 +15,15 @@ def upload_media(file_path: str, is_video: bool = False, subfolder: str = "") ->
         if subfolder:
             folder_path = f"pod2_assets/{subfolder}"
             
+        res_type = "image"
+        if is_video:
+            res_type = "video"
+        elif file_path.lower().endswith(".pdf"):
+            res_type = "raw"
+            
         options = {
             "folder": folder_path,
-            "resource_type": "video" if is_video else "image"
+            "resource_type": res_type
         }
         
         response = cloudinary.uploader.upload(file_path, **options)
