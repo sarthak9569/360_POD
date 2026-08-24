@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _logout() {
     ApiService.logout();
-    context.go('/');
+    context.go('/login');
   }
 
   @override

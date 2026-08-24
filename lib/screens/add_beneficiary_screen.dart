@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import '../services/api_service.dart';
 
 class AddBeneficiaryScreen extends StatefulWidget {
   const AddBeneficiaryScreen({super.key});
@@ -79,7 +80,7 @@ class _AddBeneficiaryScreenState extends State<AddBeneficiaryScreen> {
       };
 
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/beneficiaries'), // Assuming the user is running backend locally or via Railway
+        Uri.parse('${ApiService.baseUrl}/beneficiaries'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestBody),
       );

@@ -208,7 +208,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               title: const Text('LOGOUT', style: TextStyle(color: Colors.redAccent, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2)),
               onTap: () {
                 ApiService.logout();
-                context.go('/');
+                context.go('/login');
               },
             ),
           ],
