@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import 'image_viewer_screen.dart';
 
 class OrderCompletionScreen extends StatefulWidget {
   final String tagNo;
@@ -55,24 +55,76 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
   Widget _buildImagePreview(String url, String label) {
     if (url.isEmpty || url == "No photo provided") return const SizedBox.shrink();
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            url,
-            height: 120,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (ctx, err, stack) => Container(
-              height: 120,
-              color: Colors.grey[200],
-              child: const Center(child: Icon(Icons.broken_image)),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ImageViewerScreen(imageUrl: url, title: label),
+              ),
+            );
+          },
+          child: Container(
+            width: 240,
+            height: 240,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade300, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Image.network(
+                    url,
+                    width: 240,
+                    height: 240,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: 240,
+                        height: 240,
+                        color: Colors.grey[200],
+                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      );
+                    },
+                    errorBuilder: (ctx, err, stack) => Container(
+                      width: 240,
+                      height: 240,
+                      color: Colors.grey[200],
+                      child: const Center(child: Icon(Icons.broken_image, size: 48, color: Colors.grey)),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.zoom_in, color: Colors.white, size: 20),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -109,8 +161,10 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
     final ben = _deliveryData?['beneficiary'] ?? {};
     final farmerName = ben['farmer_name'] ?? 'Unknown';
     final village = ben['village'] ?? 'Unknown';
+    final district = ben['district'] ?? '';
     final cattleFeed = ben['cattle_feed_kg'] ?? 0;
     final silage = ben['silage_kg'] ?? 0;
+    final mineralMixture = ben['mineral_mixture_kg'] ?? 0;
     
     final partnerPhoto = _deliveryData?['partner_photo_url'] ?? '';
     final receiverPhoto = _deliveryData?['receiver_photo_url'] ?? '';
@@ -143,42 +197,38 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
           // Farmer Details
           const Text('Farmer Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('Name: $farmerName'),
-          Text('Village: $village'),
+          Text('Name: $farmerName', style: const TextStyle(fontSize: 15)),
+          Text('Village: $village${district.isNotEmpty ? ', $district' : ''}', style: const TextStyle(fontSize: 15)),
           const SizedBox(height: 24),
           
           // Items Details
           const Text('Item Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('Cattle Feed: $cattleFeed kg'),
-          Text('Silage: $silage kg'),
+          if (cattleFeed > 0) Text('Cattle Feed: $cattleFeed kg', style: const TextStyle(fontSize: 15)),
+          if (silage > 0) Text('Silage: $silage kg', style: const TextStyle(fontSize: 15)),
+          if (mineralMixture > 0) Text('Mineral Mixture: $mineralMixture kg', style: const TextStyle(fontSize: 15)),
+          if (cattleFeed <= 0 && silage <= 0 && mineralMixture <= 0)
+            const Text('No item quantities recorded', style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 24),
           
           // Photo Proofs
-          const Text('Photo Proofs', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Center(
+            child: Text('Photo Proofs', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
           const SizedBox(height: 16),
           _buildImagePreview(partnerPhoto, 'Partner Photo'),
           _buildImagePreview(receiverPhoto, 'Receiver Photo'),
           _buildImagePreview(itemsPhoto, 'Items Photo'),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           ElevatedButton.icon(
             icon: const Icon(Icons.receipt_long),
-            label: const Text('Download Invoice'),
+            label: const Text('View / Download Invoice'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            onPressed: () async {
-              final url = Uri.parse(ApiService.getInvoicePdfUrl(widget.tagNo));
-              try {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Could not open invoice: $e')),
-                  );
-                }
-              }
+            onPressed: () {
+              context.push('/invoice/${widget.tagNo}');
             },
           ),
           const SizedBox(height: 16),

@@ -2,13 +2,107 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Base URL provided by Railway
   static const String baseUrl = 'https://proof-of-delivery-2-production.up.railway.app/api';
 
-  // Store the partner's logged in district globally
+  // Store the partner's logged in district and supervisor globally
   static String? currentDistrict;
+  static String? currentSupervisorName;
+  static String? currentPartnerName;
+
+  /// SharedPreferences Keys
+  static const String _keyIsLoggedIn = 'is_logged_in';
+  static const String _keyUserRole = 'user_role'; // 'partner' or 'admin'
+  static const String _keyDistrict = 'saved_district';
+  static const String _keyVillage = 'saved_village';
+  static const String _keySupervisorName = 'saved_supervisor_name';
+  static const String _keyPartnerName = 'saved_partner_name';
+
+  /// Save partner login session to SharedPreferences
+  static Future<void> savePartnerSession({
+    required String district,
+    required String village,
+    required String supervisorName,
+    required String partnerName,
+  }) async {
+    currentDistrict = district;
+    currentSupervisorName = supervisorName;
+    currentPartnerName = partnerName;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyIsLoggedIn, true);
+      await prefs.setString(_keyUserRole, 'partner');
+      await prefs.setString(_keyDistrict, district);
+      await prefs.setString(_keyVillage, village);
+      await prefs.setString(_keySupervisorName, supervisorName);
+      await prefs.setString(_keyPartnerName, partnerName);
+    } catch (e) {
+      debugPrint('Error saving partner session to SharedPreferences: $e');
+    }
+  }
+
+  /// Save admin login session to SharedPreferences
+  static Future<void> saveAdminSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyIsLoggedIn, true);
+      await prefs.setString(_keyUserRole, 'admin');
+    } catch (e) {
+      debugPrint('Error saving admin session to SharedPreferences: $e');
+    }
+  }
+
+  /// Get saved session data from SharedPreferences
+  static Future<Map<String, dynamic>?> getSavedSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = prefs.getBool(_keyIsLoggedIn) ?? false;
+      if (!isLoggedIn) return null;
+
+      final role = prefs.getString(_keyUserRole) ?? 'partner';
+      final district = prefs.getString(_keyDistrict);
+      final supervisorName = prefs.getString(_keySupervisorName);
+      final partnerName = prefs.getString(_keyPartnerName);
+      
+      if (district != null) {
+        currentDistrict = district;
+      }
+      if (supervisorName != null) {
+        currentSupervisorName = supervisorName;
+      }
+      if (partnerName != null) {
+        currentPartnerName = partnerName;
+      }
+
+      return {
+        'isLoggedIn': true,
+        'role': role,
+        'district': district,
+        'village': prefs.getString(_keyVillage),
+        'supervisorName': supervisorName,
+        'partnerName': partnerName,
+      };
+    } catch (e) {
+      debugPrint('Error reading session from SharedPreferences: $e');
+      return null;
+    }
+  }
+
+  /// Clear session on logout
+  static Future<void> logout() async {
+    currentDistrict = null;
+    currentSupervisorName = null;
+    currentPartnerName = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } catch (e) {
+      debugPrint('Error clearing SharedPreferences on logout: $e');
+    }
+  }
 
   /// Fetch a delivery record by tag number
   static Future<Map<String, dynamic>?> getDelivery(String tagNo) async {
@@ -37,6 +131,12 @@ class ApiService {
       
       if (currentDistrict != null) {
         request.fields['supervisor_district'] = currentDistrict!;
+      }
+      if (currentSupervisorName != null && currentSupervisorName!.isNotEmpty) {
+        request.fields['supervisor_name'] = currentSupervisorName!;
+        request.fields['partner_name'] = currentPartnerName!;
+      } else if (currentPartnerName != null && currentPartnerName!.isNotEmpty) {
+        request.fields['partner_name'] = currentPartnerName!;
       }
       
       request.files.add(await http.MultipartFile.fromPath('partner_photo', partnerPhoto.path));
@@ -133,9 +233,6 @@ class ApiService {
     return [];
   }
 
-  static void logout() {
-    currentDistrict = null;
-  }
 
   static Future<bool> createSupervisor({
     required String name,

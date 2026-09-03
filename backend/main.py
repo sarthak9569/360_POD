@@ -472,22 +472,38 @@ async def complete_delivery(
     receiver_photo: UploadFile = File(...),
     items_photo: UploadFile = File(...),
     video_proof: UploadFile = File(...),
-    supervisor_district: str = Form(None)
+    supervisor_district: str = Form(None),
+    supervisor_name: str = Form(None),
+    partner_name: str = Form(None)
 ):
     try:
+        # Determine actual supervisor name
+        actual_supervisor_name = supervisor_name
+        
+        parts = tag_no.split("-M")
+        b_tag_no = parts[0] if len(parts) > 0 else tag_no
+        beneficiary = await beneficiaries_collection.find_one({"tag_no": b_tag_no})
+
         # Check authorization if supervisor_district is provided
-        if supervisor_district:
-            parts = tag_no.split("-M")
-            b_tag_no = parts[0] if len(parts) > 0 else tag_no
-            beneficiary = await beneficiaries_collection.find_one({"tag_no": b_tag_no})
-            if beneficiary:
-                b_district = str(beneficiary.get('district', '')).strip().lower()
-                s_district = supervisor_district.strip().lower()
-                if b_district != s_district:
-                    raise HTTPException(
-                        status_code=403, 
-                        detail=f"Unauthorized: Cannot complete delivery for {beneficiary.get('district')} while logged in for {supervisor_district}"
-                    )
+        if supervisor_district and beneficiary:
+            b_district = str(beneficiary.get('district', '')).strip().lower()
+            s_district = supervisor_district.strip().lower()
+            if b_district != s_district:
+                raise HTTPException(
+                    status_code=403, 
+                    detail=f"Unauthorized: Cannot complete delivery for {beneficiary.get('district')} while logged in for {supervisor_district}"
+                )
+
+        if not actual_supervisor_name:
+            target_district = supervisor_district or (beneficiary.get('district') if beneficiary else None)
+            if target_district:
+                escaped = re.escape(str(target_district).strip())
+                supervisor = await supervisors_collection.find_one({"districts": {"$regex": f"^{escaped}$", "$options": "i"}})
+                if supervisor:
+                    actual_supervisor_name = supervisor.get("name")
+
+        if not actual_supervisor_name:
+            actual_supervisor_name = partner_name or "Supervisor"
 
         # Read files into memory for uploading
         partner_bytes = await partner_photo.read()
@@ -527,7 +543,8 @@ async def complete_delivery(
         # Create delivery record
         delivery_data = {
             "tag_no": tag_no,
-            "partner_name": "Test Partner", # Ideally passed from app, but matching models.py for now
+            "partner_name": actual_supervisor_name,
+            "supervisor_name": actual_supervisor_name,
             "partner_photo_url": partner_url,
             "receiver_photo_url": receiver_url,
             "items_photo_url": items_url,
@@ -536,12 +553,8 @@ async def complete_delivery(
         }
         
         # We need the beneficiary data to generate the invoice
-        parts = tag_no.split("-M")
-        if len(parts) > 0:
-            ben_tag = parts[0]
-            beneficiary = await beneficiaries_collection.find_one({"tag_no": ben_tag})
-            if beneficiary:
-                delivery_data['beneficiary'] = beneficiary
+        if beneficiary:
+            delivery_data['beneficiary'] = beneficiary
 
         # Generate Invoice PDF
         invoice_pdf_path = await generate_invoice_pdf(delivery_data)
@@ -588,6 +601,16 @@ async def get_delivery(tag_no: str):
             beneficiary['_id'] = str(beneficiary['_id'])
             delivery['beneficiary'] = beneficiary
 
+    # Ensure supervisor_name / partner_name is resolved to respective supervisor
+    if not delivery.get('supervisor_name') or delivery.get('partner_name') == 'Test Partner':
+        ben = delivery.get('beneficiary')
+        if ben and ben.get('district'):
+            escaped = re.escape(str(ben['district']).strip())
+            supervisor = await supervisors_collection.find_one({"districts": {"$regex": f"^{escaped}$", "$options": "i"}})
+            if supervisor:
+                delivery['supervisor_name'] = supervisor.get('name')
+                delivery['partner_name'] = supervisor.get('name')
+
     return delivery
 
 @app.get("/api/deliveries/{tag_no}/invoice.pdf")
@@ -596,15 +619,25 @@ async def get_invoice_pdf(tag_no: str):
     if not delivery:
         raise HTTPException(status_code=404, detail="Delivery not found")
     
-    if "invoice_url" in delivery and delivery["invoice_url"]:
-        return RedirectResponse(url=delivery["invoice_url"])
-    
     parts = tag_no.split("-M")
     if len(parts) > 0:
         ben_tag = parts[0]
         beneficiary = await beneficiaries_collection.find_one({"tag_no": ben_tag})
         if beneficiary:
             delivery['beneficiary'] = beneficiary
+            
+    # If supervisor_name is missing or partner_name is 'Test Partner', resolve respective supervisor
+    if not delivery.get('supervisor_name') or delivery.get('partner_name') == 'Test Partner':
+        ben = delivery.get('beneficiary')
+        if ben and ben.get('district'):
+            escaped = re.escape(str(ben['district']).strip())
+            supervisor = await supervisors_collection.find_one({"districts": {"$regex": f"^{escaped}$", "$options": "i"}})
+            if supervisor:
+                delivery['supervisor_name'] = supervisor.get('name')
+                delivery['partner_name'] = supervisor.get('name')
+
+    if "invoice_url" in delivery and delivery["invoice_url"]:
+        return RedirectResponse(url=delivery["invoice_url"])
             
     pdf_path = await generate_invoice_pdf(delivery)
     return FileResponse(

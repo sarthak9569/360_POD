@@ -206,9 +206,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ListTile(
               leading: const Icon(Icons.power_settings_new, color: Colors.redAccent),
               title: const Text('LOGOUT', style: TextStyle(color: Colors.redAccent, fontFamily: 'Courier', fontWeight: FontWeight.bold, letterSpacing: 2)),
-              onTap: () {
-                ApiService.logout();
-                context.go('/login');
+              onTap: () async {
+                await ApiService.logout();
+                if (context.mounted) {
+                  context.go('/login');
+                }
               },
             ),
           ],

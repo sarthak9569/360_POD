@@ -42,18 +42,22 @@ async def generate_invoice_pdf(delivery_data: dict) -> str:
     c.setFont("Helvetica-Bold", 10)
     c.drawString(40, height - 150, "Invoice No.")
     c.drawString(40, height - 170, "Date of Issue")
+    c.drawString(40, height - 190, "Delivered By")
     
     c.setFont("Helvetica", 10)
     tag_no = delivery_data.get('tag_no', '62313')
     date_str = datetime.now().strftime("%B %d, %Y")
+    delivered_by = delivery_data.get('supervisor_name') or delivery_data.get('partner_name') or 'Supervisor'
     
     c.drawString(120, height - 150, tag_no)
     c.drawString(120, height - 170, date_str)
+    c.drawString(120, height - 190, str(delivered_by))
     
     # Draw grey lines under values
     c.setStrokeColor(colors.HexColor("#e0e0e0"))
     c.line(115, height - 152, 250, height - 152)
     c.line(115, height - 172, 250, height - 172)
+    c.line(115, height - 192, 250, height - 192)
     
     # 3. Bill To (Right)
     c.setFillColor(colors.black)

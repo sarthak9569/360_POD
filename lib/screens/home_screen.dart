@@ -25,9 +25,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _logout() {
-    ApiService.logout();
-    context.go('/login');
+  Future<void> _logout() async {
+    await ApiService.logout();
+    if (mounted) {
+      context.go('/login');
+    }
   }
 
   @override

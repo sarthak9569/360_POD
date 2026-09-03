@@ -23,10 +23,32 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoadingVillages = false;
   bool isLoggingIn = false;
 
+  bool _isCheckingSession = true;
+
   @override
   void initState() {
     super.initState();
-    _fetchDistricts();
+    _checkSavedSession();
+  }
+
+  Future<void> _checkSavedSession() async {
+    final session = await ApiService.getSavedSession();
+    if (session != null && mounted) {
+      final role = session['role'];
+      if (role == 'admin') {
+        context.go('/admin');
+        return;
+      } else {
+        context.go('/home');
+        return;
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _isCheckingSession = false;
+      });
+      _fetchDistricts();
+    }
   }
 
   Future<void> _fetchDistricts() async {
@@ -80,8 +102,15 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => isLoggingIn = false);
       if (success) {
-        ApiService.currentDistrict = selectedDistrict;
-        context.go('/home');
+        await ApiService.savePartnerSession(
+          district: selectedDistrict!,
+          village: selectedVillage!,
+          supervisorName: _supervisorNameController.text.trim(),
+          partnerName: _partnerNameController.text.trim(),
+        );
+        if (mounted) {
+          context.go('/home');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login failed: Invalid supervisor name for the selected district.')));
       }
@@ -140,6 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     body: jsonEncode({'username': uname, 'password': pwd}),
                   );
                   if (response.statusCode == 200) {
+                    await ApiService.saveAdminSession();
                     if (dialogContext.mounted) {
                       Navigator.pop(dialogContext); // close dialog
                     }
@@ -173,6 +203,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingSession) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Partner Login'),
