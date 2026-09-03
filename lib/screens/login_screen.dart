@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -34,14 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _checkSavedSession() async {
     final session = await ApiService.getSavedSession();
     if (session != null && mounted) {
-      final role = session['role'];
-      if (role == 'admin') {
-        context.go('/admin');
-        return;
-      } else {
-        context.go('/home');
-        return;
-      }
+      context.go('/home');
+      return;
     }
     if (mounted) {
       setState(() {
@@ -117,90 +109,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _showAdminLoginDialog() async {
-    final usernameController = TextEditingController();
-    final passwordController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        bool obscurePassword = true;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Admin Login'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: usernameController,
-                    decoration: const InputDecoration(labelText: 'Username'),
-                  ),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      suffixIcon: IconButton(
-                        icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () {
-                          setState(() {
-                            obscurePassword = !obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final uname = usernameController.text;
-                final pwd = passwordController.text;
-                try {
-                  final response = await http.post(
-                    Uri.parse('${ApiService.baseUrl}/admin/login'),
-                    headers: {'Content-Type': 'application/json'},
-                    body: jsonEncode({'username': uname, 'password': pwd}),
-                  );
-                  if (response.statusCode == 200) {
-                    await ApiService.saveAdminSession();
-                    if (dialogContext.mounted) {
-                      Navigator.pop(dialogContext); // close dialog
-                    }
-                    if (mounted) {
-                      context.go('/admin'); // goto admin
-                    }
-                  } else {
-                    if (dialogContext.mounted) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(content: Text('Invalid credentials')),
-                      );
-                    }
-                  }
-                } catch (e) {
-                  if (dialogContext.mounted) {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Login'),
-            )
-          ],
-        );
-      },
-      );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isCheckingSession) {
@@ -212,17 +120,18 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Partner Login'),
+        title: const Text('Supervisor Login'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _fetchDistricts,
             tooltip: 'Refresh Districts',
           ),
-          TextButton(
-            onPressed: _showAdminLoginDialog,
-            child: const Text('Admin', style: TextStyle(color: Colors.white)),
-          )
+          TextButton.icon(
+            icon: const Icon(Icons.admin_panel_settings_outlined, color: Colors.white70, size: 18),
+            label: const Text('Admin', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+            onPressed: () => context.push('/admin'),
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -305,12 +214,17 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: isLoggingIn ? null : _handlePartnerLogin,
               child: isLoggingIn 
                 ? const CircularProgressIndicator(color: Colors.white)
-                : const Text('Login', style: TextStyle(fontSize: 18)),
+                : const Text('Login as Supervisor', style: TextStyle(fontSize: 18)),
             ),
             const SizedBox(height: 16),
-            TextButton(
-              onPressed: _showAdminLoginDialog,
-              child: const Text('Admin Dashboard Login', style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF0284C7)),
+              label: const Text('Open 360 Parenting Admin Dashboard', style: TextStyle(color: Color(0xFF0284C7), fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: Color(0xFF0284C7)),
+              ),
+              onPressed: () => context.push('/admin'),
             ),
           ],
         ),

@@ -43,6 +43,7 @@ dependencies:
   path_provider: ^2.1.6
   file_picker: ^12.0.0
   shared_preferences: ^2.5.5
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

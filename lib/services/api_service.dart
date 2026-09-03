@@ -5,8 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Base URL provided by Railway
-  static const String baseUrl = 'https://proof-of-delivery-2-production.up.railway.app/api';
+  // Configurable base URL for FastAPI / 360 Parenting gateway
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:8000/api';
+    if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:8000/api';
+    return 'http://localhost:8000/api';
+  }
 
   // Store the partner's logged in district and supervisor globally
   static String? currentDistrict;
@@ -279,13 +283,23 @@ class ApiService {
     }
   }
 
-  static Future<bool> deleteSupervisor(String id) async {
+  static Future<List<dynamic>> getBeneficiaries() async {
     try {
-      final response = await http.delete(Uri.parse('$baseUrl/supervisors/$id'));
-      return response.statusCode == 200;
+      final response = await http.get(Uri.parse('$baseUrl/beneficiaries'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
     } catch (e) {
-      debugPrint('Error deleting supervisor: $e');
-      return false;
+      debugPrint('Error fetching beneficiaries: $e');
     }
+    return [];
+  }
+
+  static String getSingleQrDownloadUrl(String tagNo) {
+    return '$baseUrl/beneficiaries/$tagNo/qrs/download';
+  }
+
+  static String getAllQrsDownloadUrl() {
+    return '$baseUrl/beneficiaries/qrs/download';
   }
 }

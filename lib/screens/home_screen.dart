@@ -44,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Partner Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Supervisor Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -67,20 +67,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const Icon(Icons.account_circle, size: 64, color: Colors.white),
-                    const SizedBox(height: 12),
+                    const Icon(Icons.account_circle, size: 56, color: Colors.white),
+                    const SizedBox(height: 8),
+                    Text(
+                      ApiService.currentSupervisorName != null && ApiService.currentSupervisorName!.isNotEmpty
+                          ? ApiService.currentSupervisorName!
+                          : 'Supervisor',
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                     Text(
                       'District: ${ApiService.currentDistrict ?? "Unknown"}',
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
               ),
               ListTile(
                 leading: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                title: const Text('Scan QR', style: TextStyle(color: Colors.white, fontSize: 16)),
+                title: const Text('Scan QR Code', style: TextStyle(color: Colors.white, fontSize: 16)),
                 onTap: () {
                   context.pop();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.cyanAccent),
+                title: const Text('Admin Dashboard', style: TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  context.pop();
+                  context.push('/admin');
                 },
               ),
               const Divider(color: Colors.white30, indent: 16, endIndent: 16),
