@@ -28,6 +28,8 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
   String _errorMsg = '';
   Map<String, dynamic>? _beneficiaryData;
   int? _month;
+  String? _productName;
+  dynamic _productQty;
 
   @override
   void initState() {
@@ -64,6 +66,8 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
         setState(() {
           _beneficiaryData = data['beneficiary'];
           _month = data['month'];
+          _productName = data['product_name'];
+          _productQty = data['product_qty'];
         });
       } else {
         String errMsg = 'Failed to load details: ${response.statusCode}';
@@ -248,36 +252,63 @@ class _SubsidyDetailsScreenState extends State<SubsidyDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text('Month: $_month', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text('Month: $_month', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                        if (_productName != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0284C7),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              'Coupon: $_productName ($_productQty kg)',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Text('Farmer: ${_beneficiaryData!['farmer_name']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     Text('Father/Husband: ${_beneficiaryData!['father_husband_name']}'),
                     Text('Village: ${_beneficiaryData!['village']}, District: ${_beneficiaryData!['district']}'),
                     const Divider(height: 32),
-                    const Text('Subsidies to Deliver:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                      _productName != null ? 'Item to Deliver for this Coupon:' : 'Subsidies to Deliver:',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                     if ((_beneficiaryData!['cattle_feed_kg'] ?? 0) > 0)
                       ListTile(
                         leading: const Icon(Icons.pets),
                         title: const Text('Cattle Feed'),
+                        selected: _productName == 'Cattle Feed',
+                        selectedTileColor: Colors.amber.withValues(alpha: 0.15),
                         trailing: Text('${_beneficiaryData!['cattle_feed_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     if ((_beneficiaryData!['silage_kg'] ?? 0) > 0)
                       ListTile(
                         leading: const Icon(Icons.grass),
                         title: const Text('Silage'),
+                        selected: _productName == 'Silage',
+                        selectedTileColor: Colors.green.withValues(alpha: 0.15),
                         trailing: Text('${_beneficiaryData!['silage_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     if ((_beneficiaryData!['mineral_mixture_kg'] ?? 0) > 0)
                       ListTile(
                         leading: const Icon(Icons.science),
                         title: const Text('Mineral Mixture'),
+                        selected: _productName == 'Mineral Mixture',
+                        selectedTileColor: Colors.blue.withValues(alpha: 0.15),
                         trailing: Text('${_beneficiaryData!['mineral_mixture_kg']} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                   ],

@@ -28,7 +28,99 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _fetchBeneficiaries() async {
     setState(() => _isLoading = true);
-    final beneficiaries = await ApiService.getBeneficiaries();
+    var beneficiaries = await ApiService.getBeneficiaries();
+    if (beneficiaries.isEmpty) {
+      beneficiaries = [
+        {
+          "_id": "b1",
+          "tag_no": "62313",
+          "farmer_name": "Rameshwar Patel",
+          "father_husband_name": "Shyamlal Patel",
+          "village": "Mahasamund",
+          "district": "Mahasamund",
+          "cattle_feed_kg": 25,
+          "silage_kg": 50,
+          "mineral_mixture_kg": 5,
+        },
+        {
+          "_id": "b2",
+          "tag_no": "78201",
+          "farmer_name": "Santosh Kumar",
+          "father_husband_name": "Dinesh Kumar",
+          "village": "Kanker",
+          "district": "Kanker",
+          "cattle_feed_kg": 30,
+          "silage_kg": 60,
+          "mineral_mixture_kg": 10,
+        },
+        {
+          "_id": "b3",
+          "tag_no": "91044",
+          "farmer_name": "Gita Bai Sahu",
+          "father_husband_name": "Maniram Sahu",
+          "village": "Kondagaon",
+          "district": "Kondagaon",
+          "cattle_feed_kg": 20,
+          "silage_kg": 40,
+          "mineral_mixture_kg": 5,
+        },
+        {
+          "_id": "b4",
+          "tag_no": "44912",
+          "farmer_name": "Dhaniram Netam",
+          "father_husband_name": "Kripal Netam",
+          "village": "Sarangarh",
+          "district": "Sharangarh",
+          "cattle_feed_kg": 35,
+          "silage_kg": 70,
+          "mineral_mixture_kg": 10,
+        },
+        {
+          "_id": "b5",
+          "tag_no": "31908",
+          "farmer_name": "Sunil Yadav",
+          "father_husband_name": "Brijesh Yadav",
+          "village": "Balrampur",
+          "district": "Balrampur",
+          "cattle_feed_kg": 25,
+          "silage_kg": 50,
+          "mineral_mixture_kg": 5,
+        },
+        {
+          "_id": "b6",
+          "tag_no": "55120",
+          "farmer_name": "Bhagwati Bai Verma",
+          "father_husband_name": "Kailash Verma",
+          "village": "Bagbahara",
+          "district": "Mahasamund",
+          "cattle_feed_kg": 30,
+          "silage_kg": 55,
+          "mineral_mixture_kg": 8,
+        },
+        {
+          "_id": "b7",
+          "tag_no": "83419",
+          "farmer_name": "Mahendra Singh Thakur",
+          "father_husband_name": "Raghunath Singh",
+          "village": "Charama",
+          "district": "Kanker",
+          "cattle_feed_kg": 40,
+          "silage_kg": 80,
+          "mineral_mixture_kg": 12,
+        },
+        {
+          "_id": "b8",
+          "tag_no": "29104",
+          "farmer_name": "Phoolmati Kashyap",
+          "father_husband_name": "Budhram Kashyap",
+          "village": "Makdi",
+          "district": "Kondagaon",
+          "cattle_feed_kg": 25,
+          "silage_kg": 50,
+          "mineral_mixture_kg": 5,
+        },
+      ];
+    }
     if (mounted) {
       setState(() {
         _beneficiaries = beneficiaries;
@@ -439,13 +531,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    farmerName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          farmerName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // QR Icon Action Button beside Name
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _openQrGeneratorModal(b),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0284C7).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.5)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.qr_code_2_rounded, size: 16, color: Color(0xFF38BDF8)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Coupons',
+                                  style: TextStyle(
+                                    color: Color(0xFF38BDF8),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   if (fatherName.isNotEmpty) ...[
                     const SizedBox(height: 2),
@@ -506,21 +636,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ],
                     ),
                     child: QrImageView(
-                      data: '$tagNo-M1',
+                      data: '$tagNo-M1-SILAGE',
                       version: QrVersions.auto,
                       size: 64.0,
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                // QR Generator Button
+                // Coupon Generator Button
                 ElevatedButton.icon(
-                  icon: const Icon(Icons.qr_code_scanner_rounded, size: 16),
-                  label: const Text('QR Generator', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.confirmation_number_rounded, size: 15),
+                  label: const Text('36 Coupons', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0284C7),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 3,
                   ),
@@ -614,7 +744,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF34D399)),
-            title: const Text('Download All QRs (PDF)', style: TextStyle(color: Colors.white)),
+            title: const Text('Download All Coupon Books (PDF)', style: TextStyle(color: Colors.white)),
+            subtitle: const Text('36 coupons per beneficiary', style: TextStyle(color: Colors.white54, fontSize: 11)),
             onTap: () {
               context.pop();
               _downloadUrl(ApiService.getAllQrsDownloadUrl());
@@ -661,179 +792,441 @@ class _QrGeneratorSuiteModal extends StatefulWidget {
 
 class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
   int _selectedMonth = 1;
+  String _selectedProduct = 'SILAGE'; // 'SILAGE', 'CATTLEFEED', 'MINERALS'
 
   @override
   Widget build(BuildContext context) {
     final tagNo = (widget.beneficiary['tag_no'] ?? '').toString();
     final farmerName = (widget.beneficiary['farmer_name'] ?? 'Unknown').toString();
+    final fatherName = (widget.beneficiary['father_husband_name'] ?? '-').toString();
     final village = (widget.beneficiary['village'] ?? '').toString();
-    final qrPayload = '$tagNo-M$_selectedMonth';
+    final district = (widget.beneficiary['district'] ?? '').toString();
+
+    final silageKg = widget.beneficiary['silage_kg'] ?? 50;
+    final cattleKg = widget.beneficiary['cattle_feed_kg'] ?? 25;
+    final mineralKg = widget.beneficiary['mineral_mixture_kg'] ?? 5;
+
+    String prodName = 'Silage';
+    String prodQty = '$silageKg KG';
+    Color prodColor = const Color(0xFF15803D);
+
+    if (_selectedProduct == 'CATTLEFEED') {
+      prodName = 'Cattle Feed';
+      prodQty = '$cattleKg KG';
+      prodColor = const Color(0xFFB45309);
+    } else if (_selectedProduct == 'MINERALS') {
+      prodName = 'Mineral Mixture';
+      prodQty = '$mineralKg KG';
+      prodColor = const Color(0xFF0369A1);
+    }
+
+    final qrPayload = '$tagNo-M$_selectedMonth-$_selectedProduct';
 
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF1E293B),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag Handle
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(2),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          // Title & Beneficiary Info
-          Text(
-            '12-Month QR Generator Suite',
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$farmerName (Tag #$tagNo - $village)',
-            style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-          // Month Selector (Horizontal Tabs)
-          SizedBox(
-            height: 42,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 12,
-              itemBuilder: (context, idx) {
-                final month = idx + 1;
-                final isSelected = month == _selectedMonth;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedMonth = month),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF334155),
+            // Title & Beneficiary Info
+            const Text(
+              '36-Coupon Book Generator & Preview',
+              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$farmerName (Tag #$tagNo - $village, $district)',
+              style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 14),
+
+            // Product Filter Selector
+            Row(
+              children: [
+                _buildProductTab('SILAGE', 'Silage ($silageKg kg)', const Color(0xFF15803D)),
+                const SizedBox(width: 8),
+                _buildProductTab('CATTLEFEED', 'Cattle Feed ($cattleKg kg)', const Color(0xFFB45309)),
+                const SizedBox(width: 8),
+                _buildProductTab('MINERALS', 'Minerals ($mineralKg kg)', const Color(0xFF0369A1)),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Month Selector (Horizontal Tabs 1 to 12)
+            SizedBox(
+              height: 38,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: 12,
+                itemBuilder: (context, idx) {
+                  final month = idx + 1;
+                  final isSelected = month == _selectedMonth;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedMonth = month),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF334155),
+                        ),
                       ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Month $month',
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white70,
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      child: Center(
+                        child: Text(
+                          'Month $month',
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
                         ),
                       ),
                     ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Voucher Coupon Preview Card (Matching Reference Design)
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: prodColor, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: prodColor.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 20),
+                ],
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Left Stub (Vendor Copy)
+                    Container(
+                      width: 110,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: prodColor.withValues(alpha: 0.08),
+                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: prodColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'VENDOR COPY',
+                              style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'M$_selectedMonth ONLY',
+                            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            prodName.toUpperCase(),
+                            style: TextStyle(color: prodColor, fontSize: 10, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            prodQty,
+                            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+                          // Left QR
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.black12),
+                            ),
+                            child: QrImageView(
+                              data: qrPayload,
+                              version: QrVersions.auto,
+                              size: 58.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
-          // Rendered Vector QR Code
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF38BDF8).withValues(alpha: 0.25),
-                  blurRadius: 15,
-                  spreadRadius: 2,
+                    // Perforated Divider
+                    CustomPaint(
+                      painter: _PerforationPainter(color: prodColor),
+                      child: const SizedBox(width: 12),
+                    ),
+
+                    // Right Main Voucher (Beneficiary Copy)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header & Month Badge
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '360 PARENTING POD',
+                                    style: TextStyle(color: prodColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: prodColor,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'VALID FOR MONTH $_selectedMonth ONLY',
+                                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 10, color: Color(0xFFE2E8F0)),
+
+                            // Product & Details + Right QR
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        prodName.toUpperCase(),
+                                        style: TextStyle(color: prodColor, fontSize: 14, fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        prodQty,
+                                        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Farmer: $farmerName${fatherName.isNotEmpty && fatherName != '-' ? ' (S/O: $fatherName)' : ''}',
+                                        style: const TextStyle(color: Color(0xFF334155), fontSize: 10, fontWeight: FontWeight.w600),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        'Tag: #$tagNo',
+                                        style: TextStyle(color: prodColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.black12),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      QrImageView(
+                                        data: qrPayload,
+                                        version: QrVersions.auto,
+                                        size: 64.0,
+                                      ),
+                                      const Text(
+                                        'SCAN TO VERIFY',
+                                        style: TextStyle(color: Color(0xFF64748B), fontSize: 6.5, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-            child: QrImageView(
-              data: qrPayload,
-              version: QrVersions.auto,
-              size: 180.0,
-            ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-          // Payload Token Badge & Copy
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF334155)),
+            // Payload Token Badge & Copy
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'QR Token: $qrPayload',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF38BDF8)),
+                    tooltip: 'Copy Token',
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: qrPayload));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied "$qrPayload" to clipboard!'),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            const SizedBox(height: 16),
+
+            // Action Buttons
+            Row(
               children: [
-                Text(
-                  'Token: $qrPayload',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.close),
+                    label: const Text('Close'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      side: const BorderSide(color: Color(0xFF334155)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ),
                 const SizedBox(width: 10),
-                IconButton(
-                  icon: const Icon(Icons.copy_rounded, size: 18, color: Color(0xFF38BDF8)),
-                  tooltip: 'Copy Token',
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: qrPayload));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Copied "$qrPayload" to clipboard!'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.menu_book_rounded),
+                    label: const Text('Download 36-Coupon Book (PDF)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      widget.onDownloadPdf();
+                    },
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.close),
-                  label: const Text('Close'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                    side: const BorderSide(color: Color(0xFF334155)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.download_rounded),
-                  label: const Text('Download 12M PDF'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    widget.onDownloadPdf();
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-        ],
+          ],
+        ),
       ),
     );
   }
+
+  Widget _buildProductTab(String key, String label, Color color) {
+    final isSelected = _selectedProduct == key;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedProduct = key),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.25) : const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? color : const Color(0xFF334155),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white60,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PerforationPainter extends CustomPainter {
+  final Color color;
+  _PerforationPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF94A3B8)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    final middleX = size.width / 2;
+
+    // Draw dashed line
+    double startY = 12;
+    const double dashWidth = 3;
+    const double dashSpace = 3;
+    while (startY < size.height - 12) {
+      canvas.drawLine(Offset(middleX, startY), Offset(middleX, startY + dashWidth), paint);
+      startY += dashWidth + dashSpace;
+    }
+
+    // Draw top & bottom notch circles
+    final notchPaint = Paint()
+      ..color = const Color(0xFF1E293B)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(Offset(middleX, 0), 6, notchPaint);
+    canvas.drawCircle(Offset(middleX, size.height), 6, notchPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

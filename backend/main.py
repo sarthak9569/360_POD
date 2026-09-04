@@ -97,6 +97,83 @@ BENEFICIARIES_STORE = [
         "silage_kg": 50,
         "mineral_mixture_kg": 5,
     },
+    {
+        "_id": "b6",
+        "tag_no": "55120",
+        "farmer_name": "Bhagwati Bai Verma",
+        "father_husband_name": "Kailash Verma",
+        "village": "Bagbahara",
+        "district": "Mahasamund",
+        "cattle_feed_kg": 30,
+        "silage_kg": 55,
+        "mineral_mixture_kg": 8,
+    },
+    {
+        "_id": "b7",
+        "tag_no": "83419",
+        "farmer_name": "Mahendra Singh Thakur",
+        "father_husband_name": "Raghunath Singh",
+        "village": "Charama",
+        "district": "Kanker",
+        "cattle_feed_kg": 40,
+        "silage_kg": 80,
+        "mineral_mixture_kg": 12,
+    },
+    {
+        "_id": "b8",
+        "tag_no": "29104",
+        "farmer_name": "Phoolmati Kashyap",
+        "father_husband_name": "Budhram Kashyap",
+        "village": "Makdi",
+        "district": "Kondagaon",
+        "cattle_feed_kg": 25,
+        "silage_kg": 50,
+        "mineral_mixture_kg": 5,
+    },
+    {
+        "_id": "b9",
+        "tag_no": "67482",
+        "farmer_name": "Devendra Kumar Sahu",
+        "father_husband_name": "Puranik Lal Sahu",
+        "village": "Baramkela",
+        "district": "Sharangarh",
+        "cattle_feed_kg": 35,
+        "silage_kg": 65,
+        "mineral_mixture_kg": 10,
+    },
+    {
+        "_id": "b10",
+        "tag_no": "19485",
+        "farmer_name": "Anuradha Paikra",
+        "father_husband_name": "Devanand Paikra",
+        "village": "Ramanujganj",
+        "district": "Balrampur",
+        "cattle_feed_kg": 20,
+        "silage_kg": 45,
+        "mineral_mixture_kg": 5,
+    },
+    {
+        "_id": "b11",
+        "tag_no": "73620",
+        "farmer_name": "Chaitram Markam",
+        "father_husband_name": "Ghanshyam Markam",
+        "village": "Pharasgaon",
+        "district": "Kondagaon",
+        "cattle_feed_kg": 30,
+        "silage_kg": 60,
+        "mineral_mixture_kg": 8,
+    },
+    {
+        "_id": "b12",
+        "tag_no": "88214",
+        "farmer_name": "Rajendra Prasad Soni",
+        "father_husband_name": "Lalji Soni",
+        "village": "Saraipali",
+        "district": "Mahasamund",
+        "cattle_feed_kg": 25,
+        "silage_kg": 50,
+        "mineral_mixture_kg": 5,
+    },
 ]
 
 DELIVERIES_STORE = {}
@@ -229,7 +306,7 @@ async def receive_beneficiaries_from_website(request: Request):
 
 @app.get("/api/beneficiaries/{tag_no}/qrs/download")
 async def download_single_qrs(tag_no: str):
-    """Generate and download a 12-month QR sheet PDF for a beneficiary."""
+    """Generate and download a 36-coupon booklet PDF for a beneficiary."""
     beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == str(tag_no)), None)
     if not beneficiary:
         beneficiary = {
@@ -238,32 +315,44 @@ async def download_single_qrs(tag_no: str):
             "father_husband_name": "-",
             "village": "Default Village",
             "district": "Default District",
+            "cattle_feed_kg": 25,
+            "silage_kg": 50,
+            "mineral_mixture_kg": 5,
         }
         
     pdf_path = await generate_qr_pdf(beneficiary)
     return FileResponse(
         path=pdf_path,
-        filename=f"QRs_{tag_no}.pdf",
+        filename=f"Coupon_Book_{tag_no}.pdf",
         media_type="application/pdf",
         background=BackgroundTask(lambda: os.remove(pdf_path) if os.path.exists(pdf_path) else None)
     )
 
 @app.get("/api/beneficiaries/qrs/download")
 async def download_all_qrs():
-    """Download all active beneficiaries' QR code sheets."""
+    """Download all active beneficiaries' 36-coupon booklet PDFs."""
     pdf_path = await generate_all_qrs_pdf(BENEFICIARIES_STORE)
     return FileResponse(
         path=pdf_path,
-        filename="All_360_Parenting_QRs.pdf",
+        filename="All_360_Parenting_Coupon_Books.pdf",
         media_type="application/pdf",
         background=BackgroundTask(lambda: os.remove(pdf_path) if os.path.exists(pdf_path) else None)
     )
 
 @app.get("/api/qr/{qr_code_id}")
 async def get_qr_data(qr_code_id: str, supervisor_district: str = None):
-    parts = qr_code_id.split("-M")
-    tag_no = parts[0]
-    month = int(parts[1]) if len(parts) > 1 else 1
+    # Parse formats: "62313-M1-SILAGE", "62313-M1-CATTLEFEED", "62313-M12-MINERALS", "62313-M1", "62313"
+    tag_no = qr_code_id
+    month = 1
+    product_code = None
+    product_name = None
+    product_qty = None
+
+    qr_match = re.match(r"^([^-]+)-M(\d+)(?:-(.*))?$", qr_code_id.strip(), re.IGNORECASE)
+    if qr_match:
+        tag_no = qr_match.group(1)
+        month = int(qr_match.group(2))
+        product_code = qr_match.group(3).upper() if qr_match.group(3) else None
 
     beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == str(tag_no)), None)
     if not beneficiary:
@@ -278,12 +367,28 @@ async def get_qr_data(qr_code_id: str, supervisor_district: str = None):
                 detail=f"INVALID QR: Belongs to {beneficiary.get('district')}, but logged in for {supervisor_district}."
             )
 
+    # Match product metadata if product code is in the QR
+    if product_code:
+        if "SIL" in product_code:
+            product_name = "Silage"
+            product_qty = beneficiary.get("silage_kg", 50)
+        elif "CATTLE" in product_code or "CF" in product_code or "FEED" in product_code:
+            product_name = "Cattle Feed"
+            product_qty = beneficiary.get("cattle_feed_kg", 25)
+        elif "MIN" in product_code:
+            product_name = "Mineral Mixture"
+            product_qty = beneficiary.get("mineral_mixture_kg", 5)
+
     is_completed = qr_code_id in DELIVERIES_STORE
 
     return {
         "beneficiary": beneficiary,
         "month": month,
-        "is_completed": is_completed
+        "product_code": product_code,
+        "product_name": product_name,
+        "product_qty": product_qty,
+        "is_completed": is_completed,
+        "qr_code_id": qr_code_id
     }
 
 @app.post("/api/deliveries/{tag_no}")
