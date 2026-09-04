@@ -1196,6 +1196,7 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
           ],
         ),
       ),
+    ),
     );
   }
 
