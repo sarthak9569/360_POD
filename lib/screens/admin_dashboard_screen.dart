@@ -199,16 +199,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ? b
           : (b is Map ? Map<String, dynamic>.from(b) : <String, dynamic>{});
 
-      showModalBottomSheet(
+      showDialog(
         context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        useRootNavigator: true,
-        backgroundColor: Colors.transparent,
-        builder: (modalContext) {
-          return _QrGeneratorSuiteModal(
-            beneficiary: beneficiary,
-            onDownloadPdf: () => _downloadUrl(ApiService.getSingleQrDownloadUrl(beneficiary['tag_no'].toString())),
+        barrierDismissible: true,
+        builder: (dialogContext) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+            child: _QrGeneratorSuiteModal(
+              beneficiary: beneficiary,
+              onDownloadPdf: () => _downloadUrl(ApiService.getSingleQrDownloadUrl(beneficiary['tag_no'].toString())),
+            ),
           );
         },
       );
@@ -935,165 +936,183 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
                   ),
                 ],
               ),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Left Stub (Vendor Copy)
-                    Container(
-                      width: 110,
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: prodColor.withValues(alpha: 0.08),
-                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Left Stub (Vendor Copy)
+                  Container(
+                    width: 105,
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: prodColor.withValues(alpha: 0.08),
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: prodColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'VENDOR COPY',
+                            style: TextStyle(color: Colors.white, fontSize: 7.5, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'M$_selectedMonth ONLY',
+                          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 8.5, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          prodName.toUpperCase(),
+                          style: TextStyle(color: prodColor, fontSize: 9.5, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          prodQty,
+                          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 9.5, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        // Left QR
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.black12),
+                          ),
+                          child: QrImageView(
+                            data: qrPayload,
+                            version: QrVersions.auto,
+                            size: 50.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Perforated Divider
+                  Container(
+                    width: 8,
+                    height: 120,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(
+                        8,
+                        (index) => Container(
+                          width: 2,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF94A3B8),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
                       ),
+                    ),
+                  ),
+
+                  // Right Main Voucher (Beneficiary Copy)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: prodColor,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'VENDOR COPY',
-                              style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                            ),
+                          // Header & Month Badge
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '360 PARENTING',
+                                  style: TextStyle(color: prodColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: prodColor,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'M$_selectedMonth ONLY',
+                                  style: const TextStyle(color: Colors.white, fontSize: 7.5, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'M$_selectedMonth ONLY',
-                            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 9, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            prodName.toUpperCase(),
-                            style: TextStyle(color: prodColor, fontSize: 10, fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            prodQty,
-                            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 6),
-                          // Left QR
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.black12),
-                            ),
-                            child: QrImageView(
-                              data: qrPayload,
-                              version: QrVersions.auto,
-                              size: 58.0,
-                            ),
+                          const Divider(height: 6, color: Color(0xFFE2E8F0)),
+
+                          // Product & Details + Right QR
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      prodName.toUpperCase(),
+                                      style: TextStyle(color: prodColor, fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      prodQty,
+                                      style: const TextStyle(color: Color(0xFF0F172A), fontSize: 10.5, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Farmer: $farmerName',
+                                      style: const TextStyle(color: Color(0xFF334155), fontSize: 9, fontWeight: FontWeight.w600),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      'Tag: #$tagNo',
+                                      style: TextStyle(color: prodColor, fontSize: 9, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.black12),
+                                ),
+                                child: Column(
+                                  children: [
+                                    QrImageView(
+                                      data: qrPayload,
+                                      version: QrVersions.auto,
+                                      size: 54.0,
+                                    ),
+                                    const Text(
+                                      'SCAN TO VERIFY',
+                                      style: TextStyle(color: Color(0xFF64748B), fontSize: 5.5, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-
-                    // Perforated Divider
-                    CustomPaint(
-                      painter: _PerforationPainter(color: prodColor),
-                      child: const SizedBox(width: 12),
-                    ),
-
-                    // Right Main Voucher (Beneficiary Copy)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header & Month Badge
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    '360 PARENTING POD',
-                                    style: TextStyle(color: prodColor, fontSize: 11, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: prodColor,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    'VALID FOR MONTH $_selectedMonth ONLY',
-                                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 10, color: Color(0xFFE2E8F0)),
-
-                            // Product & Details + Right QR
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        prodName.toUpperCase(),
-                                        style: TextStyle(color: prodColor, fontSize: 14, fontWeight: FontWeight.bold),
-                                      ),
-                                      Text(
-                                        prodQty,
-                                        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12, fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Farmer: $farmerName${fatherName.isNotEmpty && fatherName != '-' ? ' (S/O: $fatherName)' : ''}',
-                                        style: const TextStyle(color: Color(0xFF334155), fontSize: 10, fontWeight: FontWeight.w600),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        'Tag: #$tagNo',
-                                        style: TextStyle(color: prodColor, fontSize: 10, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.black12),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      QrImageView(
-                                        data: qrPayload,
-                                        version: QrVersions.auto,
-                                        size: 64.0,
-                                      ),
-                                      const Text(
-                                        'SCAN TO VERIFY',
-                                        style: TextStyle(color: Color(0xFF64748B), fontSize: 6.5, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
             // Payload Token Badge & Copy
             Container(
@@ -1112,7 +1131,7 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
                       style: const TextStyle(
                         color: Colors.white,
                         fontFamily: 'monospace',
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -1120,7 +1139,7 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
                   ),
                   const SizedBox(width: 6),
                   IconButton(
-                    icon: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF38BDF8)),
+                    icon: const Icon(Icons.copy_rounded, size: 15, color: Color(0xFF38BDF8)),
                     tooltip: 'Copy Token',
                     constraints: const BoxConstraints(),
                     padding: EdgeInsets.zero,
@@ -1137,37 +1156,37 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // Action Buttons
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, size: 16),
                     label: const Text('Close'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white70,
                       side: const BorderSide(color: Color(0xFF334155)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   flex: 2,
                   child: ElevatedButton.icon(
-                    icon: const Icon(Icons.menu_book_rounded),
+                    icon: const Icon(Icons.menu_book_rounded, size: 16),
                     label: const Text('Download 36-Coupon Book (PDF)'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0284C7),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                     onPressed: () {
-                      Navigator.pop(context);
+                      Navigator.of(context, rootNavigator: true).pop();
                       widget.onDownloadPdf();
                     },
                   ),
@@ -1177,7 +1196,6 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
           ],
         ),
       ),
-    ),
     );
   }
 
@@ -1201,7 +1219,7 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
               label,
               style: TextStyle(
                 color: isSelected ? Colors.white : Colors.white60,
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
               textAlign: TextAlign.center,
@@ -1211,39 +1229,4 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
       ),
     );
   }
-}
-
-class _PerforationPainter extends CustomPainter {
-  final Color color;
-  _PerforationPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF94A3B8)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    final middleX = size.width / 2;
-
-    // Draw dashed line
-    double startY = 12;
-    const double dashWidth = 3;
-    const double dashSpace = 3;
-    while (startY < size.height - 12) {
-      canvas.drawLine(Offset(middleX, startY), Offset(middleX, startY + dashWidth), paint);
-      startY += dashWidth + dashSpace;
-    }
-
-    // Draw top & bottom notch circles
-    final notchPaint = Paint()
-      ..color = const Color(0xFF1E293B)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(Offset(middleX, 0), 6, notchPaint);
-    canvas.drawCircle(Offset(middleX, size.height), 6, notchPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
