@@ -193,18 +193,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  void _openQrGeneratorModal(Map<String, dynamic> beneficiary) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (modalContext) {
-        return _QrGeneratorSuiteModal(
-          beneficiary: beneficiary,
-          onDownloadPdf: () => _downloadUrl(ApiService.getSingleQrDownloadUrl(beneficiary['tag_no'].toString())),
-        );
-      },
-    );
+  void _openQrGeneratorModal(dynamic b) {
+    try {
+      final Map<String, dynamic> beneficiary = b is Map<String, dynamic>
+          ? b
+          : (b is Map ? Map<String, dynamic>.from(b) : <String, dynamic>{});
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        useRootNavigator: true,
+        backgroundColor: Colors.transparent,
+        builder: (modalContext) {
+          return _QrGeneratorSuiteModal(
+            beneficiary: beneficiary,
+            onDownloadPdf: () => _downloadUrl(ApiService.getSingleQrDownloadUrl(beneficiary['tag_no'].toString())),
+          );
+        },
+      );
+    } catch (e, stack) {
+      debugPrint('Error opening QR generator modal: $e\n$stack');
+    }
   }
 
   @override
@@ -823,15 +833,21 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
     final qrPayload = '$tagNo-M$_selectedMonth-$_selectedProduct';
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       decoration: const BoxDecoration(
         color: Color(0xFF1E293B),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // Drag Handle
             Container(
               width: 40,
@@ -1161,6 +1177,7 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
           ],
         ),
       ),
+    ),
     );
   }
 
