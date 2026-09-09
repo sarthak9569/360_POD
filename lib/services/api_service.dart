@@ -6,9 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Configurable base URL for FastAPI / 360 Parenting gateway
+  static String hostIp = '192.168.1.55';
+
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:8000/api';
-    if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:8000/api';
+    if (defaultTargetPlatform == TargetPlatform.android) return 'http://$hostIp:8000/api';
     return 'http://localhost:8000/api';
   }
 

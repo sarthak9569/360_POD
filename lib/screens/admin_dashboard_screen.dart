@@ -809,7 +809,7 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
   Widget build(BuildContext context) {
     final tagNo = (widget.beneficiary['tag_no'] ?? '').toString();
     final farmerName = (widget.beneficiary['farmer_name'] ?? 'Unknown').toString();
-    final fatherName = (widget.beneficiary['father_husband_name'] ?? '-').toString();
+    final fatherName = (widget.beneficiary['father_husband_name'] ?? '').toString();
     final village = (widget.beneficiary['village'] ?? '').toString();
     final district = (widget.beneficiary['district'] ?? '').toString();
 
@@ -832,6 +832,10 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
     }
 
     final qrPayload = '$tagNo-M$_selectedMonth-$_selectedProduct';
+
+    final subtitle = fatherName.isNotEmpty
+        ? '$farmerName (S/o $fatherName • Tag #$tagNo • $village, $district)'
+        : '$farmerName (Tag #$tagNo • $village, $district)';
 
     return Container(
       constraints: BoxConstraints(
@@ -867,8 +871,9 @@ class _QrGeneratorSuiteModalState extends State<_QrGeneratorSuiteModal> {
             ),
             const SizedBox(height: 4),
             Text(
-              '$farmerName (Tag #$tagNo - $village, $district)',
-              style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 13, fontWeight: FontWeight.w600),
+              subtitle,
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 14),
 

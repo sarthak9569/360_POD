@@ -270,7 +270,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
               border: Border.all(color: Colors.grey.shade300, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -308,7 +308,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black.withValues(alpha: 0.6),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.zoom_in, color: Colors.white, size: 14),

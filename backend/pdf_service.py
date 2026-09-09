@@ -303,11 +303,16 @@ def _draw_coupon_ticket(c: canvas.Canvas, x: float, y: float, w: float, h: float
     c.setFont("Helvetica-Bold", 10)
     c.drawString(x + 12, y + h - 42, f"MONTH {month} ONLY")
     
-    c.setFont("Helvetica-Bold", 11)
+    # Auto-fit product name on stub
+    stub_prod_title = prod_name.upper()
+    stub_font_size = 10.5
+    while stub_font_size > 7.0 and c.stringWidth(stub_prod_title, "Helvetica-Bold", stub_font_size) > (stub_w - 24):
+        stub_font_size -= 0.5
+    c.setFont("Helvetica-Bold", stub_font_size)
     c.setFillColor(theme_color)
-    c.drawString(x + 12, y + h - 56, prod_name.upper())
+    c.drawString(x + 12, y + h - 56, stub_prod_title)
     
-    c.setFont("Helvetica-Bold", 12)
+    c.setFont("Helvetica-Bold", 11)
     c.setFillColor(dark_text)
     c.drawString(x + 12, y + h - 70, f"QTY: {prod_qty}")
     
@@ -338,7 +343,7 @@ def _draw_coupon_ticket(c: canvas.Canvas, x: float, y: float, w: float, h: float
     # ==================== RIGHT VOUCHER (BENEFICIARY COPY) ====================
     main_x = divider_x + 15
     
-    # Top Header: "360 PARENTING POD" & Month Validity Pill
+    # Top Header: "360 PARENTING POD • SUBSIDY COUPON" & Month Validity Pill
     c.setFillColor(theme_color)
     c.setFont("Helvetica-Bold", 11)
     c.drawString(main_x, y + h - 24, "360 PARENTING POD • SUBSIDY COUPON")
@@ -359,28 +364,55 @@ def _draw_coupon_ticket(c: canvas.Canvas, x: float, y: float, w: float, h: float
     c.setLineWidth(1)
     c.line(main_x, y + h - 34, x + w - 12, y + h - 34)
     
-    # Product Big Title & Quantity
+    # Product Title on Left
+    main_prod_title = prod_name.upper()
+    main_font_size = 14.0
+    while main_font_size > 9.0 and c.stringWidth(main_prod_title, "Helvetica-Bold", main_font_size) > 230:
+        main_font_size -= 0.5
     c.setFillColor(theme_color)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(main_x, y + h - 56, prod_name.upper())
+    c.setFont("Helvetica-Bold", main_font_size)
+    c.drawString(main_x, y + h - 54, main_prod_title)
     
-    c.setFillColor(dark_text)
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(main_x + 180, y + h - 56, f"{prod_qty}")
+    # Quantity Pill Badge (Right-aligned, preventing any overlap with product name)
+    qty_text = f"QTY: {prod_qty}"
+    c.setFont("Helvetica-Bold", 10.5)
+    qty_str_w = c.stringWidth(qty_text, "Helvetica-Bold", 10.5)
+    qty_badge_w = qty_str_w + 16
+    qty_badge_h = 18
+    qty_badge_x = x + w - qty_badge_w - 14
+    qty_badge_y = y + h - 58
+    
+    c.setFillColor(colors.HexColor(product_info['light_bg']))
+    c.setStrokeColor(theme_color)
+    c.setLineWidth(1)
+    c.roundRect(qty_badge_x, qty_badge_y, qty_badge_w, qty_badge_h, 4, fill=1, stroke=1)
+    
+    c.setFillColor(theme_color)
+    c.drawCentredString(qty_badge_x + (qty_badge_w / 2), qty_badge_y + 5, qty_text)
     
     # Left Info Box for Beneficiary Details
-    info_y = y + h - 74
+    info_y = y + h - 68
+    box_w = 235
     c.setFillColor(colors.HexColor("#f1f5f9"))
-    c.roundRect(main_x, y + 14, 235, info_y - (y + 14), 6, fill=1, stroke=0)
+    c.roundRect(main_x, y + 14, box_w, info_y - (y + 14), 6, fill=1, stroke=0)
+    
+    def fit_text(txt: str, font: str, sz: float, max_w: float) -> str:
+        if c.stringWidth(txt, font, sz) <= max_w:
+            return txt
+        while len(txt) > 3 and c.stringWidth(txt + "..", font, sz) > max_w:
+            txt = txt[:-1]
+        return txt + ".."
+    
+    val_max_w = box_w - 95 - 8
     
     # Details rows
-    row_y = info_y - 15
+    row_y = info_y - 14
     c.setFont("Helvetica-Bold", 8.5)
     c.setFillColor(sub_text)
     c.drawString(main_x + 10, row_y, "Beneficiary Name:")
     c.setFont("Helvetica-Bold", 9.5)
     c.setFillColor(dark_text)
-    c.drawString(main_x + 95, row_y, farmer_name)
+    c.drawString(main_x + 95, row_y, fit_text(farmer_name, "Helvetica-Bold", 9.5, val_max_w))
     
     row_y -= 16
     c.setFont("Helvetica-Bold", 8.5)
@@ -388,7 +420,7 @@ def _draw_coupon_ticket(c: canvas.Canvas, x: float, y: float, w: float, h: float
     c.drawString(main_x + 10, row_y, "Father/Husband:")
     c.setFont("Helvetica", 9)
     c.setFillColor(dark_text)
-    c.drawString(main_x + 95, row_y, father_husband)
+    c.drawString(main_x + 95, row_y, fit_text(father_husband, "Helvetica", 9, val_max_w))
     
     row_y -= 16
     c.setFont("Helvetica-Bold", 8.5)
@@ -396,7 +428,7 @@ def _draw_coupon_ticket(c: canvas.Canvas, x: float, y: float, w: float, h: float
     c.drawString(main_x + 10, row_y, "Village & District:")
     c.setFont("Helvetica", 9)
     c.setFillColor(dark_text)
-    c.drawString(main_x + 95, row_y, f"{village}, {district}")
+    c.drawString(main_x + 95, row_y, fit_text(f"{village}, {district}", "Helvetica", 9, val_max_w))
     
     row_y -= 16
     c.setFont("Helvetica-Bold", 8.5)
@@ -409,7 +441,7 @@ def _draw_coupon_ticket(c: canvas.Canvas, x: float, y: float, w: float, h: float
     row_y -= 16
     c.setFont("Helvetica", 7.5)
     c.setFillColor(sub_text)
-    c.drawString(main_x + 10, row_y, "Note: Present this coupon to supervisor upon monthly delivery.")
+    c.drawString(main_x + 10, row_y, "Note: Present coupon to supervisor upon monthly delivery.")
     
     # Right QR Code in Main Voucher
     main_qr_size = 90
@@ -432,8 +464,555 @@ def _draw_coupon_ticket(c: canvas.Canvas, x: float, y: float, w: float, h: float
     c.setFillColor(sub_text)
     c.drawCentredString(main_qr_x + (main_qr_size / 2), y + 4, qr_data)
 
+# Try registering Nirmala fonts for Hindi script support if available
+FONT_HINDI_BOLD = "Helvetica-Bold"
+FONT_HINDI_REG = "Helvetica"
+try:
+    nirmala_path = r"C:\Windows\Fonts\Nirmala.ttc"
+    if os.path.exists(nirmala_path):
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        pdfmetrics.registerFont(TTFont('Nirmala', nirmala_path, subfontIndex=0))
+        pdfmetrics.registerFont(TTFont('Nirmala-Bold', nirmala_path, subfontIndex=1))
+        FONT_HINDI_BOLD = 'Nirmala-Bold'
+        FONT_HINDI_REG = 'Nirmala'
+except Exception:
+    pass
+
+def _draw_cover_page(c: canvas.Canvas, beneficiary: dict):
+    """
+    Renders Page 1: Premium Booklet Cover matching the user design:
+    - Top Maroon Header Bar: 'सब्सिडी वितरण / Subsidy Distribution'
+    - Left Maroon Spine with stitch/dashed line
+    - Large Title: 'सब्सिडी वितरण'
+    - Subtitle: '12 MONTHS • 3 PRODUCTS/MONTH • 36 TEARABLE COUPONS'
+    - Central Illustration: Rural farming & dairy cattle illustration
+    - Bottom Left: 'My Animal' branding & 'Leading the Animal Tech Revolution'
+    - Right: Master Booklet QR Code with beneficiary verification details
+    """
+    page_w, page_h = letter # 612 x 792 pt
+    tag_no = str(beneficiary.get('tag_no', 'UNKNOWN'))
+    farmer_name = str(beneficiary.get('farmer_name', 'Beneficiary Name'))
+    village = str(beneficiary.get('village', '-'))
+    district = str(beneficiary.get('district', '-'))
+    
+    maroon_color = colors.HexColor("#5c1421")
+    dark_slate = colors.HexColor("#0f172a")
+    sub_slate = colors.HexColor("#475569")
+    
+    # 1. Background base
+    c.setFillColor(colors.HexColor("#FDFBF7"))
+    c.rect(0, 0, page_w, page_h, fill=1, stroke=0)
+    
+    # 2. Top Maroon Header Bar
+    c.setFillColor(maroon_color)
+    c.rect(0, page_h - 44, page_w, 44, fill=1, stroke=0)
+    
+    c.setFillColor(colors.white)
+    c.setFont(FONT_HINDI_BOLD, 15)
+    c.drawCentredString(page_w / 2, page_h - 28, "सब्सिडी वितरण / Subsidy Distribution")
+    
+    # 3. Left Spine Binding Accent
+    spine_w = 26
+    c.setFillColor(maroon_color)
+    c.rect(0, 0, spine_w, page_h - 44, fill=1, stroke=0)
+    
+    # Perforated/stitch dashed line along spine
+    c.saveState()
+    c.setStrokeColor(colors.HexColor("#94a3b8"))
+    c.setLineWidth(1)
+    c.setDash([3, 3])
+    c.line(spine_w + 6, 28, spine_w + 6, page_h - 52)
+    c.restoreState()
+    
+    # 4. Main Cover Content Area
+    content_x = spine_w + 16
+    
+    # Main Hindi Title
+    c.setFillColor(maroon_color)
+    c.setFont(FONT_HINDI_BOLD, 32)
+    c.drawString(content_x, page_h - 96, "सब्सिडी वितरण")
+    
+    # Sub-headline
+    c.setFillColor(dark_slate)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(content_x, page_h - 120, "12 MONTHS • 3 PRODUCTS/MONTH • 36 TEARABLE COUPONS")
+    
+    # Subtle separator line below header
+    c.setStrokeColor(colors.HexColor("#e2e8f0"))
+    c.setLineWidth(1)
+    c.line(content_x, page_h - 132, page_w - 20, page_h - 132)
+    
+    # 5. Middle Layout: Illustration (Left/Center) & Master QR (Right)
+    assets_dir = os.path.join(os.path.dirname(__file__), "assets")
+    cover_img_path = os.path.join(assets_dir, "cover_illustration.jpg")
+    
+    img_x = content_x
+    img_y = 230
+    img_w = 345
+    img_h = 390
+    
+    # Draw container box for illustration
+    c.setFillColor(colors.white)
+    c.setStrokeColor(colors.HexColor("#e2e8f0"))
+    c.setLineWidth(1)
+    c.roundRect(img_x, img_y, img_w, img_h, 8, fill=1, stroke=1)
+    
+    if os.path.exists(cover_img_path):
+        try:
+            # Draw illustration neatly clipped inside rounded card
+            c.saveState()
+            c.drawImage(cover_img_path, img_x + 4, img_y + 4, width=img_w - 8, height=img_h - 8, preserveAspectRatio=True)
+            c.restoreState()
+        except Exception as e:
+            print(f"Failed to render cover illustration: {e}")
+            
+    # 6. Right Side Master QR Code Container
+    qr_card_x = img_x + img_w + 12
+    qr_card_y = 230
+    qr_card_w = page_w - qr_card_x - 20 # ~175 pt
+    qr_card_h = 390
+    
+    c.setFillColor(colors.white)
+    c.setStrokeColor(colors.HexColor("#cbd5e1"))
+    c.setLineWidth(1)
+    c.roundRect(qr_card_x, qr_card_y, qr_card_w, qr_card_h, 8, fill=1, stroke=1)
+    
+    # Master QR Banner Header
+    c.setFillColor(maroon_color)
+    c.roundRect(qr_card_x + 8, qr_card_y + qr_card_h - 28, qr_card_w - 16, 20, 4, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 8.5)
+    c.drawCentredString(qr_card_x + (qr_card_w / 2), qr_card_y + qr_card_h - 22, "BOOKLET MASTER QR")
+    
+    # Generate Master QR code buffer
+    master_qr_data = f"360POD-BOOKLET-TAG{tag_no}"
+    master_qr_buf = _make_qr_buffer(master_qr_data)
+    master_qr_img = ImageReader(master_qr_buf)
+    
+    qr_size = 135
+    qr_pos_x = qr_card_x + (qr_card_w - qr_size) / 2
+    qr_pos_y = qr_card_y + 200
+    
+    # White background container with outline for QR
+    c.setFillColor(colors.white)
+    c.setStrokeColor(colors.HexColor("#e2e8f0"))
+    c.setLineWidth(0.8)
+    c.roundRect(qr_pos_x - 4, qr_pos_y - 4, qr_size + 8, qr_size + 8, 4, fill=1, stroke=1)
+    c.drawImage(master_qr_img, qr_pos_x, qr_pos_y, width=qr_size, height=qr_size)
+    
+    # Scan verification label
+    c.setFont("Helvetica-Bold", 7.5)
+    c.setFillColor(maroon_color)
+    c.drawCentredString(qr_card_x + (qr_card_w / 2), qr_pos_y - 14, "SCAN TO VERIFY BOOKLET")
+    
+    c.setFont("Helvetica", 6.5)
+    c.setFillColor(sub_slate)
+    c.drawCentredString(qr_card_x + (qr_card_w / 2), qr_pos_y - 24, master_qr_data)
+    
+    # Beneficiary Summary Badge inside right card
+    info_box_y = qr_card_y + 12
+    info_box_h = 135
+    c.setFillColor(colors.HexColor("#F8FAFC"))
+    c.setStrokeColor(colors.HexColor("#E2E8F0"))
+    c.setLineWidth(0.8)
+    c.roundRect(qr_card_x + 8, info_box_y, qr_card_w - 16, info_box_h, 6, fill=1, stroke=1)
+    
+    # Beneficiary quick metadata
+    c.setFillColor(maroon_color)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(qr_card_x + 14, info_box_y + info_box_h - 16, "BENEFICIARY:")
+    
+    c.setFillColor(dark_slate)
+    c.setFont("Helvetica-Bold", 9)
+    farmer_disp = (farmer_name[:18] + '..') if len(farmer_name) > 18 else farmer_name
+    c.drawString(qr_card_x + 14, info_box_y + info_box_h - 30, farmer_disp)
+    
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(sub_slate)
+    c.drawString(qr_card_x + 14, info_box_y + info_box_h - 46, "TAG NUMBER:")
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(colors.HexColor("#0369a1"))
+    c.drawString(qr_card_x + 14, info_box_y + info_box_h - 58, f"#{tag_no}")
+    
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(sub_slate)
+    c.drawString(qr_card_x + 14, info_box_y + info_box_h - 74, "LOCATION:")
+    c.setFont("Helvetica", 8)
+    c.setFillColor(dark_slate)
+    loc_str = f"{village}, {district}"
+    loc_disp = (loc_str[:18] + '..') if len(loc_str) > 18 else loc_str
+    c.drawString(qr_card_x + 14, info_box_y + info_box_h - 86, loc_disp)
+    
+    # Green enrollment status pill
+    status_pill_w = qr_card_w - 32
+    c.setFillColor(colors.HexColor("#DCFCE7"))
+    c.roundRect(qr_card_x + 16, info_box_y + 10, status_pill_w, 18, 4, fill=1, stroke=0)
+    c.setFillColor(colors.HexColor("#15803D"))
+    c.setFont("Helvetica-Bold", 7.5)
+    c.drawCentredString(qr_card_x + 16 + (status_pill_w / 2), info_box_y + 15, "ACTIVE ENROLLMENT")
+    
+    # 7. Bottom Branding & Footer Section
+    # "My Animal" Logo
+    my_animal_y = 135
+    c.setFont("Helvetica-Bold", 26)
+    c.setFillColor(colors.HexColor("#0284C7")) # Blue
+    c.drawString(content_x, my_animal_y, "My ")
+    
+    c.setFillColor(colors.HexColor("#16A34A")) # Green
+    c.drawString(content_x + 44, my_animal_y, "Animal")
+    
+    # Subtitle
+    c.setFont("Helvetica-Bold", 8.5)
+    c.setFillColor(colors.HexColor("#475569"))
+    c.drawString(content_x, my_animal_y - 15, "Leading the Animal Tech Revolution")
+    
+    # Project subtitle badge
+    c.setFillColor(colors.HexColor("#F1F5F9"))
+    c.roundRect(content_x, my_animal_y - 42, 345, 20, 4, fill=1, stroke=0)
+    c.setFillColor(maroon_color)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(content_x + 8, my_animal_y - 35, "360 PARENTING POD • CATTLE WELFARE & SUBSIDY PROGRAM")
+    
+    # Right-side Official Stamp Box on Cover
+    stamp_x = qr_card_x
+    stamp_y = 75
+    stamp_w = qr_card_w
+    stamp_h = 130
+    c.setFillColor(colors.HexColor("#FAFAFA"))
+    c.setStrokeColor(colors.HexColor("#E2E8F0"))
+    c.setLineWidth(1)
+    c.roundRect(stamp_x, stamp_y, stamp_w, stamp_h, 6, fill=1, stroke=1)
+    
+    c.setFillColor(dark_slate)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(stamp_x + (stamp_w / 2), stamp_y + stamp_h - 16, "AUTHORIZATION")
+    
+    c.setFont("Helvetica", 7.5)
+    c.setFillColor(sub_slate)
+    c.drawCentredString(stamp_x + (stamp_w / 2), stamp_y + stamp_h - 32, "Verified & Issued by")
+    c.drawCentredString(stamp_x + (stamp_w / 2), stamp_y + stamp_h - 44, "360 Parenting POD Gateway")
+    
+    c.setStrokeColor(colors.HexColor("#CBD5E1"))
+    c.setLineWidth(0.8)
+    c.setDash([2, 2])
+    c.line(stamp_x + 12, stamp_y + 35, stamp_x + stamp_w - 12, stamp_y + 35)
+    c.setDash([])
+    
+    c.setFont("Helvetica-Bold", 7)
+    c.setFillColor(sub_slate)
+    c.drawCentredString(stamp_x + (stamp_w / 2), stamp_y + 20, "OFFICIAL STAMP / SIGN")
+    
+    # Bottom Maroon Footer Bar
+    c.setFillColor(maroon_color)
+    c.rect(0, 0, page_w, 28, fill=1, stroke=0)
+    
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica", 8)
+    c.drawCentredString(page_w / 2, 10, "An Initiative by My Animal & 360 Parenting POD • Valid for 12 Consecutive Delivery Cycles")
+    
+    c.showPage()
+
+def _draw_beneficiary_details_page(c: canvas.Canvas, beneficiary_data: dict):
+    """
+    Renders Page 2: Dedicated Beneficiary Enrollment Certificate & Subsidy Entitlement Breakdown.
+    - Header: '360 PARENTING POD • BENEFICIARY ENROLLMENT CERTIFICATE'
+    - Card 1: Beneficiary Profile & Livestock Information
+    - Card 2: 12-Month Subsidy Allocation Breakdown Table (Silage, Cattle Feed, Mineral Mixture)
+    - Card 3: Instructions & Coupon Redemption Rules
+    - Card 4: Official Signatures & Verification Stamp
+    """
+    page_w, page_h = letter # 612 x 792 pt
+    tag_no = str(beneficiary_data.get('tag_no', 'UNKNOWN'))
+    farmer_name = str(beneficiary_data.get('farmer_name', 'Beneficiary Name'))
+    father_husband = str(beneficiary_data.get('father_husband_name', '-'))
+    village = str(beneficiary_data.get('village', '-'))
+    district = str(beneficiary_data.get('district', '-'))
+    state = str(beneficiary_data.get('state', 'Chhattisgarh'))
+    
+    silage_kg = beneficiary_data.get('silage_kg') or 50
+    cattle_kg = beneficiary_data.get('cattle_feed_kg') or 25
+    mineral_kg = beneficiary_data.get('mineral_mixture_kg') or 5
+    
+    total_monthly_kg = silage_kg + cattle_kg + mineral_kg
+    total_annual_kg = total_monthly_kg * 12
+    
+    dark_navy = colors.HexColor("#0F172A")
+    sub_slate = colors.HexColor("#475569")
+    text_dark = colors.HexColor("#1E293B")
+    border_slate = colors.HexColor("#E2E8F0")
+    
+    # 1. Top Header Banner
+    c.setFillColor(dark_navy)
+    c.rect(0, page_h - 52, page_w, 52, fill=1, stroke=0)
+    
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(28, page_h - 26, "360 PARENTING POD • BENEFICIARY ENROLLMENT CERTIFICATE")
+    
+    c.setFont("Helvetica", 8.5)
+    c.setFillColor(colors.HexColor("#94A3B8"))
+    c.drawString(28, page_h - 42, "Official record of farmer enrollment, cattle subsidy quotas, and monthly redemption guidelines")
+    
+    # Active Status Pill
+    status_w = 120
+    status_h = 22
+    status_x = page_w - status_w - 28
+    status_y = page_h - 38
+    c.setFillColor(colors.HexColor("#15803D"))
+    c.roundRect(status_x, status_y, status_w, status_h, 5, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 8.5)
+    c.drawCentredString(status_x + (status_w / 2), status_y + 7, "VERIFIED & ACTIVE")
+    
+    margin_x = 28
+    card_w = page_w - (margin_x * 2) # 556 pt
+    
+    # ==================== CARD 1: BENEFICIARY PROFILE ====================
+    card1_y = page_h - 195
+    card1_h = 130
+    
+    c.setFillColor(colors.HexColor("#F8FAFC"))
+    c.setStrokeColor(border_slate)
+    c.setLineWidth(1)
+    c.roundRect(margin_x, card1_y, card_w, card1_h, 8, fill=1, stroke=1)
+    
+    # Card 1 Header Strip
+    c.setFillColor(colors.HexColor("#1E293B"))
+    c.roundRect(margin_x, card1_y + card1_h - 24, card_w, 24, 6, fill=1, stroke=0)
+    c.rect(margin_x, card1_y + card1_h - 24, card_w, 8, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 9.5)
+    c.drawString(margin_x + 14, card1_y + card1_h - 16, "1. BENEFICIARY & LIVESTOCK PROFILE")
+    
+    # Column 1 (Left)
+    col1_x = margin_x + 16
+    row1_y = card1_y + card1_h - 45
+    
+    c.setFont("Helvetica-Bold", 8.5)
+    c.setFillColor(sub_slate)
+    c.drawString(col1_x, row1_y, "Beneficiary Name:")
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(text_dark)
+    c.drawString(col1_x + 115, row1_y, farmer_name)
+    
+    row1_y -= 22
+    c.setFont("Helvetica-Bold", 8.5)
+    c.setFillColor(sub_slate)
+    c.drawString(col1_x, row1_y, "Father / Husband:")
+    c.setFont("Helvetica", 10)
+    c.setFillColor(text_dark)
+    c.drawString(col1_x + 115, row1_y, father_husband)
+    
+    row1_y -= 22
+    c.setFont("Helvetica-Bold", 8.5)
+    c.setFillColor(sub_slate)
+    c.drawString(col1_x, row1_y, "Village & District:")
+    c.setFont("Helvetica", 10)
+    c.setFillColor(text_dark)
+    c.drawString(col1_x + 115, row1_y, f"{village}, {district} ({state})")
+    
+    # Column 2 (Right)
+    col2_x = margin_x + 290
+    row2_y = card1_y + card1_h - 45
+    
+    c.setFont("Helvetica-Bold", 8.5)
+    c.setFillColor(sub_slate)
+    c.drawString(col2_x, row2_y, "Cattle Ear Tag No:")
+    c.setFont("Helvetica-Bold", 12)
+    c.setFillColor(colors.HexColor("#0369A1"))
+    c.drawString(col2_x + 115, row2_y, f"#{tag_no}")
+    
+    row2_y -= 22
+    c.setFont("Helvetica-Bold", 8.5)
+    c.setFillColor(sub_slate)
+    c.drawString(col2_x, row2_y, "Enrollment Period:")
+    c.setFont("Helvetica-Bold", 9.5)
+    c.setFillColor(text_dark)
+    c.drawString(col2_x + 115, row2_y, "12 Months (36 Total Vouchers)")
+    
+    row2_y -= 22
+    c.setFont("Helvetica-Bold", 8.5)
+    c.setFillColor(sub_slate)
+    c.drawString(col2_x, row2_y, "Program Gateway:")
+    c.setFont("Helvetica", 9.5)
+    c.setFillColor(text_dark)
+    c.drawString(col2_x + 115, row2_y, "360 Parenting POD System")
+    
+    # ==================== CARD 2: SUBSIDY ENTITLEMENT TABLE ====================
+    card2_y = card1_y - 175
+    card2_h = 162
+    
+    c.setFillColor(colors.HexColor("#F8FAFC"))
+    c.setStrokeColor(border_slate)
+    c.setLineWidth(1)
+    c.roundRect(margin_x, card2_y, card_w, card2_h, 8, fill=1, stroke=1)
+    
+    # Card 2 Header Strip
+    c.setFillColor(colors.HexColor("#1E293B"))
+    c.roundRect(margin_x, card2_y + card2_h - 24, card_w, 24, 6, fill=1, stroke=0)
+    c.rect(margin_x, card2_y + card2_h - 24, card_w, 8, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 9.5)
+    c.drawString(margin_x + 14, card2_y + card2_h - 16, "2. SUBSIDY ENTITLEMENT & ANNUAL QUOTA BREAKDOWN")
+    
+    # Table Column Headers
+    tbl_hdr_y = card2_y + card2_h - 44
+    c.setFillColor(colors.HexColor("#E2E8F0"))
+    c.rect(margin_x + 10, tbl_hdr_y, card_w - 20, 18, fill=1, stroke=0)
+    
+    c.setFillColor(dark_navy)
+    c.setFont("Helvetica-Bold", 8.5)
+    c.drawString(margin_x + 16, tbl_hdr_y + 5, "SUBSIDY PRODUCT")
+    c.drawString(margin_x + 160, tbl_hdr_y + 5, "MONTHLY QUOTA")
+    c.drawString(margin_x + 280, tbl_hdr_y + 5, "ANNUAL TOTAL (12 MOS)")
+    c.drawString(margin_x + 420, tbl_hdr_y + 5, "CATEGORY / BENEFIT")
+    
+    # Rows Data
+    rows = [
+        ("Silage Subsidy", f"{silage_kg} KG / Month", f"{silage_kg * 12} KG Total", "Green Roughage & Milk Yield", "#15803D", "#DCFCE7"),
+        ("Cattle Feed Subsidy", f"{cattle_kg} KG / Month", f"{cattle_kg * 12} KG Total", "Balanced Protein Feed", "#B45309", "#FEF3C7"),
+        ("Mineral Mixture Subsidy", f"{mineral_kg} KG / Month", f"{mineral_kg * 12} KG Total", "Micronutrients & Immunity", "#0369A1", "#E0F2FE")
+    ]
+    
+    cur_tbl_y = tbl_hdr_y - 24
+    for prod_name, mo_quota, yr_quota, purpose, p_color, bg_pill in rows:
+        c.setFillColor(colors.HexColor(p_color))
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(margin_x + 16, cur_tbl_y + 3, prod_name)
+        
+        # Monthly Quota Pill
+        c.setFillColor(colors.HexColor(bg_pill))
+        c.roundRect(margin_x + 158, cur_tbl_y, 90, 16, 3, fill=1, stroke=0)
+        c.setFillColor(colors.HexColor(p_color))
+        c.setFont("Helvetica-Bold", 8.5)
+        c.drawCentredString(margin_x + 203, cur_tbl_y + 4, mo_quota)
+        
+        c.setFillColor(text_dark)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(margin_x + 280, cur_tbl_y + 3, yr_quota)
+        
+        c.setFont("Helvetica", 8.5)
+        c.setFillColor(sub_slate)
+        c.drawString(margin_x + 420, cur_tbl_y + 3, purpose)
+        
+        # Row divider
+        c.setStrokeColor(border_slate)
+        c.setLineWidth(0.6)
+        c.line(margin_x + 10, cur_tbl_y - 4, margin_x + card_w - 10, cur_tbl_y - 4)
+        cur_tbl_y -= 23
+        
+    # Total Summary Bar
+    summary_y = card2_y + 8
+    c.setFillColor(colors.HexColor("#0F172A"))
+    c.roundRect(margin_x + 10, summary_y, card_w - 20, 20, 4, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 8.5)
+    c.drawString(margin_x + 20, summary_y + 6, f"TOTAL ALLOCATION:  {total_monthly_kg} KG per Month")
+    c.drawRightString(margin_x + card_w - 20, summary_y + 6, f"GRAND TOTAL:  {total_annual_kg} KG across 36 Coupons")
+    
+    # ==================== CARD 3: GUIDELINES & REDEMPTION PROCESS ====================
+    card3_y = card2_y - 145
+    card3_h = 132
+    
+    c.setFillColor(colors.HexColor("#F8FAFC"))
+    c.setStrokeColor(border_slate)
+    c.setLineWidth(1)
+    c.roundRect(margin_x, card3_y, card_w, card3_h, 8, fill=1, stroke=1)
+    
+    # Card 3 Header Strip
+    c.setFillColor(colors.HexColor("#1E293B"))
+    c.roundRect(margin_x, card3_y + card3_h - 24, card_w, 24, 6, fill=1, stroke=0)
+    c.rect(margin_x, card3_y + card3_h - 24, card_w, 8, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 9.5)
+    c.drawString(margin_x + 14, card3_y + card3_h - 16, "3. IMPORTANT GUIDELINES & COUPON REDEMPTION INSTRUCTIONS")
+    
+    instructions = [
+        "1. Monthly Handover: Present the designated month's coupon to the authorized supervisor upon monthly supply delivery.",
+        "2. Perforated Stub: The supervisor will retain the left vendor copy and leave the verified right voucher with the farmer.",
+        "3. QR Verification: Ensure the supervisor scans the unique coupon QR code to record geo-tagged proof of delivery.",
+        "4. Non-Transferable: Coupons are valid strictly for cattle tag #" + tag_no + " and cannot be exchanged or transferred."
+    ]
+    
+    inst_y = card3_y + card3_h - 42
+    for inst in instructions:
+        c.setFillColor(dark_navy)
+        c.setFont("Helvetica", 8.5)
+        c.drawString(margin_x + 16, inst_y, inst)
+        inst_y -= 19
+        
+    # ==================== CARD 4: SIGNATURES & VERIFICATION ====================
+    card4_y = card3_y - 110
+    card4_h = 98
+    
+    c.setFillColor(colors.HexColor("#FFFFFF"))
+    c.setStrokeColor(border_slate)
+    c.setLineWidth(1)
+    c.roundRect(margin_x, card4_y, card_w, card4_h, 8, fill=1, stroke=1)
+    
+    col_w = (card_w - 40) / 3 # ~172 pt
+    
+    # Box 1: Beneficiary Sign
+    box1_x = margin_x + 10
+    c.setStrokeColor(colors.HexColor("#CBD5E1"))
+    c.setDash([2, 2])
+    c.line(box1_x + 10, card4_y + 35, box1_x + col_w - 10, card4_y + 35)
+    c.setDash([])
+    c.setFillColor(text_dark)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(box1_x + (col_w / 2), card4_y + 20, "Beneficiary Signature / Thumbprint")
+    c.setFont("Helvetica", 7)
+    c.setFillColor(sub_slate)
+    c.drawCentredString(box1_x + (col_w / 2), card4_y + 10, f"Farmer: {farmer_name}")
+    
+    # Box 2: Supervisor Sign
+    box2_x = box1_x + col_w + 10
+    c.setStrokeColor(colors.HexColor("#CBD5E1"))
+    c.setDash([2, 2])
+    c.line(box2_x + 10, card4_y + 35, box2_x + col_w - 10, card4_y + 35)
+    c.setDash([])
+    c.setFillColor(text_dark)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(box2_x + (col_w / 2), card4_y + 20, "Authorized Supervisor Signature")
+    c.setFont("Helvetica", 7)
+    c.setFillColor(sub_slate)
+    c.drawCentredString(box2_x + (col_w / 2), card4_y + 10, "360 Parenting POD Field Partner")
+    
+    # Box 3: Official Stamp
+    box3_x = box2_x + col_w + 10
+    c.setStrokeColor(colors.HexColor("#CBD5E1"))
+    c.setDash([2, 2])
+    c.line(box3_x + 10, card4_y + 35, box3_x + col_w - 10, card4_y + 35)
+    c.setDash([])
+    c.setFillColor(text_dark)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(box3_x + (col_w / 2), card4_y + 20, "Official POD Seal & Stamp")
+    c.setFont("Helvetica", 7)
+    c.setFillColor(sub_slate)
+    c.drawCentredString(box3_x + (col_w / 2), card4_y + 10, "Registration Gateway Verification")
+    
+    # Bottom Footer
+    c.setFont("Helvetica", 8)
+    c.setFillColor(colors.HexColor("#64748B"))
+    c.drawCentredString(page_w / 2, 14, "Page 2 of 14 • Beneficiary Enrollment & Subsidy Record • 360 Parenting POD Gateway")
+    
+    c.showPage()
+
 def _render_beneficiary_coupon_pages(c: canvas.Canvas, beneficiary_data: dict):
-    """Renders 12 monthly pages (3 coupons per page = 36 coupons total) for a single beneficiary."""
+    """
+    Renders the complete 14-page beneficiary subsidy booklet:
+    - Page 1: Premium Booklet Cover Page
+    - Page 2: Dedicated Beneficiary Details & Subsidy Certificate Page
+    - Pages 3 to 14: 12 Monthly Coupon Pages (3 coupons per page = 36 total coupons)
+    """
+    # 1. Render Cover Page (Page 1)
+    _draw_cover_page(c, beneficiary_data)
+    
+    # 2. Render Dedicated Beneficiary Details Page (Page 2)
+    _draw_beneficiary_details_page(c, beneficiary_data)
+    
+    # 3. Render 12 Monthly Coupon Pages (Pages 3 to 14)
     page_w, page_h = letter # 612 x 792
     
     silage_kg = beneficiary_data.get('silage_kg') or 50
@@ -457,21 +1036,21 @@ def _render_beneficiary_coupon_pages(c: canvas.Canvas, beneficiary_data: dict):
         # 3 products for this month
         products = [
             {
-                "name": "Silage Subsidy",
+                "name": "Silage",
                 "code": "SILAGE",
                 "qty": f"{silage_kg} KG",
                 "color": "#15803D",     # Forest Green
                 "light_bg": "#DCFCE7",  # Light Mint Green
             },
             {
-                "name": "Cattle Feed Subsidy",
+                "name": "Cattle Feed",
                 "code": "CATTLEFEED",
                 "qty": f"{cattle_kg} KG",
                 "color": "#B45309",     # Amber / Gold
                 "light_bg": "#FEF3C7",  # Light Amber
             },
             {
-                "name": "Mineral Mixture Subsidy",
+                "name": "Mineral Mixture",
                 "code": "MINERALS",
                 "qty": f"{mineral_kg} KG",
                 "color": "#0369A1",     # Deep Ocean Blue
@@ -491,12 +1070,12 @@ def _render_beneficiary_coupon_pages(c: canvas.Canvas, beneficiary_data: dict):
         # Footer
         c.setFont("Helvetica", 8)
         c.setFillColor(colors.HexColor("#64748B"))
-        c.drawCentredString(page_w / 2, 12, f"Coupon Book Page {month} of 12 • 36 Total Monthly Product Coupons • 360 Parenting POD Gateway")
+        c.drawCentredString(page_w / 2, 12, f"Coupon Book Month {month} of 12 • Page {month + 2} of 14 • 36 Total Coupons • 360 Parenting POD Gateway")
         
         c.showPage()
 
 async def generate_qr_pdf(beneficiary_data: dict) -> str:
-    """Generates a complete 36-coupon booklet PDF (12 months x 3 products) for a single beneficiary."""
+    """Generates a complete 14-page booklet PDF (Cover + Beneficiary Details + 12 Monthly Pages) for a beneficiary."""
     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     temp_pdf_path = temp_pdf.name
     temp_pdf.close()
@@ -507,7 +1086,7 @@ async def generate_qr_pdf(beneficiary_data: dict) -> str:
     return temp_pdf_path
 
 async def generate_all_qrs_pdf(beneficiaries: list) -> str:
-    """Generates a multi-page PDF containing 36 coupons for each beneficiary in the list."""
+    """Generates a multi-booklet PDF containing all pages for each beneficiary in the list."""
     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     temp_pdf_path = temp_pdf.name
     temp_pdf.close()

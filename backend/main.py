@@ -305,6 +305,9 @@ async def receive_beneficiaries_from_website(request: Request):
     }
 
 @app.get("/api/beneficiaries/{tag_no}/qrs/download")
+@app.get("/api/beneficiaries/{tag_no}/qr")
+@app.get("/api/beneficiaries/{tag_no}/pdf")
+@app.get("/api/beneficiaries/{tag_no}/qr-pdf")
 async def download_single_qrs(tag_no: str):
     """Generate and download a 36-coupon booklet PDF for a beneficiary."""
     beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == str(tag_no)), None)

@@ -76,7 +76,7 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
               border: Border.all(color: Colors.grey.shade300, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -114,7 +114,7 @@ class _OrderCompletionScreenState extends State<OrderCompletionScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Icon(Icons.zoom_in, color: Colors.white, size: 20),

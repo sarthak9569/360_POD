@@ -133,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, spreadRadius: 5),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 15, spreadRadius: 5),
                         ],
                       ),
                       child: ClipRRect(
@@ -159,17 +159,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, spreadRadius: 2),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, spreadRadius: 2),
                         ],
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.qr_code_scanner, size: 100, color: Colors.white.withOpacity(0.8)),
+                          Icon(Icons.qr_code_scanner, size: 100, color: Colors.white.withValues(alpha: 0.8)),
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.camera_alt, color: Color(0xFF4A00E0)),
@@ -194,12 +194,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 32),
                 Row(
                   children: [
-                    Expanded(child: Divider(color: Colors.white.withOpacity(0.5))),
+                    Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.5))),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text('OR', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
                     ),
-                    Expanded(child: Divider(color: Colors.white.withOpacity(0.5))),
+                    Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.5))),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -208,9 +208,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Enter Unique Code manually',
-                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.8)),
+                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withValues(alpha: 0.1),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,

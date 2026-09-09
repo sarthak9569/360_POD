@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelText: 'Select District',
                   border: OutlineInputBorder(),
                 ),
-                value: selectedDistrict,
+                initialValue: selectedDistrict,
                 items: districts.map((String district) {
                   return DropdownMenuItem<String>(
                     value: district,
@@ -176,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelText: 'Select Village',
                   border: OutlineInputBorder(),
                 ),
-                value: selectedVillage,
+                initialValue: selectedVillage,
                 items: villages.map((String village) {
                   return DropdownMenuItem<String>(
                     value: village,
