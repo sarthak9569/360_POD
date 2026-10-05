@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import '../services/pdf_generator_service.dart';
+import 'pdf_viewer_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -20,110 +22,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String? _selectedDistrict;
   DateTime? _lastSyncTime;
 
+  int _currentPage = 1;
+  int _limit = 10;
+  int _totalRecords = 0;
+  int _totalPages = 1;
+  List<String> _allDistricts = ['All Districts'];
+
   @override
   void initState() {
     super.initState();
+    _loadDistricts();
     _fetchBeneficiaries();
   }
 
-  Future<void> _fetchBeneficiaries() async {
-    setState(() => _isLoading = true);
-    var beneficiaries = await ApiService.getBeneficiaries();
-    if (beneficiaries.isEmpty) {
-      beneficiaries = [
-        {
-          "_id": "b1",
-          "tag_no": "62313",
-          "farmer_name": "Rameshwar Patel",
-          "father_husband_name": "Shyamlal Patel",
-          "village": "Mahasamund",
-          "district": "Mahasamund",
-          "cattle_feed_kg": 25,
-          "silage_kg": 50,
-          "mineral_mixture_kg": 5,
-        },
-        {
-          "_id": "b2",
-          "tag_no": "78201",
-          "farmer_name": "Santosh Kumar",
-          "father_husband_name": "Dinesh Kumar",
-          "village": "Kanker",
-          "district": "Kanker",
-          "cattle_feed_kg": 30,
-          "silage_kg": 60,
-          "mineral_mixture_kg": 10,
-        },
-        {
-          "_id": "b3",
-          "tag_no": "91044",
-          "farmer_name": "Gita Bai Sahu",
-          "father_husband_name": "Maniram Sahu",
-          "village": "Kondagaon",
-          "district": "Kondagaon",
-          "cattle_feed_kg": 20,
-          "silage_kg": 40,
-          "mineral_mixture_kg": 5,
-        },
-        {
-          "_id": "b4",
-          "tag_no": "44912",
-          "farmer_name": "Dhaniram Netam",
-          "father_husband_name": "Kripal Netam",
-          "village": "Sarangarh",
-          "district": "Sharangarh",
-          "cattle_feed_kg": 35,
-          "silage_kg": 70,
-          "mineral_mixture_kg": 10,
-        },
-        {
-          "_id": "b5",
-          "tag_no": "31908",
-          "farmer_name": "Sunil Yadav",
-          "father_husband_name": "Brijesh Yadav",
-          "village": "Balrampur",
-          "district": "Balrampur",
-          "cattle_feed_kg": 25,
-          "silage_kg": 50,
-          "mineral_mixture_kg": 5,
-        },
-        {
-          "_id": "b6",
-          "tag_no": "55120",
-          "farmer_name": "Bhagwati Bai Verma",
-          "father_husband_name": "Kailash Verma",
-          "village": "Bagbahara",
-          "district": "Mahasamund",
-          "cattle_feed_kg": 30,
-          "silage_kg": 55,
-          "mineral_mixture_kg": 8,
-        },
-        {
-          "_id": "b7",
-          "tag_no": "83419",
-          "farmer_name": "Mahendra Singh Thakur",
-          "father_husband_name": "Raghunath Singh",
-          "village": "Charama",
-          "district": "Kanker",
-          "cattle_feed_kg": 40,
-          "silage_kg": 80,
-          "mineral_mixture_kg": 12,
-        },
-        {
-          "_id": "b8",
-          "tag_no": "29104",
-          "farmer_name": "Phoolmati Kashyap",
-          "father_husband_name": "Budhram Kashyap",
-          "village": "Makdi",
-          "district": "Kondagaon",
-          "cattle_feed_kg": 25,
-          "silage_kg": 50,
-          "mineral_mixture_kg": 5,
-        },
-      ];
-    }
-    if (mounted) {
+  Future<void> _loadDistricts() async {
+    final dists = await ApiService.getDistricts();
+    if (mounted && dists.isNotEmpty) {
       setState(() {
-        _beneficiaries = beneficiaries;
+        _allDistricts = ['All Districts', ...dists];
+      });
+    }
+  }
+
+  Future<void> _fetchBeneficiaries({int? page, int? limit}) async {
+    setState(() => _isLoading = true);
+    final reqPage = page ?? _currentPage;
+    final reqLimit = limit ?? _limit;
+
+    final res = await ApiService.getBeneficiariesPaginated(page: reqPage, limit: reqLimit);
+    if (mounted) {
+      final List<dynamic> data = res['data'] ?? [];
+      final Map<String, dynamic> pag = res['pagination'] ?? {};
+
+      setState(() {
+        _beneficiaries = data;
+        _currentPage = (pag['currentPage'] is int) ? pag['currentPage'] : reqPage;
+        _limit = (pag['limit'] is int) ? pag['limit'] : reqLimit;
+        _totalRecords = (pag['totalRecords'] is int) ? pag['totalRecords'] : data.length;
+        _totalPages = (pag['totalPages'] is int)
+            ? pag['totalPages']
+            : ((_totalRecords + _limit - 1) ~/ (_limit > 0 ? _limit : 1));
+        if (_totalPages < 1) _totalPages = 1;
         _lastSyncTime = DateTime.now();
         _applyFilters();
         _isLoading = false;
@@ -157,13 +96,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   List<String> get _districts {
-    final dists = _beneficiaries
+    final distsFromItems = _beneficiaries
         .map((b) => (b['district'] ?? '').toString().trim())
         .where((d) => d.isNotEmpty)
-        .toSet()
-        .toList();
-    dists.sort();
-    return ['All Districts', ...dists];
+        .toSet();
+    final combined = {..._allDistricts.where((d) => d != 'All Districts'), ...distsFromItems}.toList();
+    combined.sort();
+    return ['All Districts', ...combined];
   }
 
   int get _totalCattleFeed {
@@ -174,22 +113,41 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return _filteredBeneficiaries.fold(0, (sum, b) => sum + ((b['silage_kg'] ?? 0) as int));
   }
 
-  Future<void> _downloadUrl(String urlString) async {
-    final uri = Uri.parse(urlString);
-    try {
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not launch URL: $urlString')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error downloading: $e')),
+  Future<void> _downloadUrl(String urlString, [Map<String, dynamic>? beneficiary]) async {
+    // 1. Native On-Device PDF Booklet generation & viewing (No local IP redirect)
+    if (beneficiary != null) {
+      final file = await PdfGeneratorService.generateCouponBookletPdf(beneficiary);
+      if (file != null && mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PdfViewerScreen(
+              title: '36-Coupon Booklet - ${beneficiary['farmer_name'] ?? beneficiary['tag_no']}',
+              pdfFile: file,
+            ),
+          ),
         );
+        return;
       }
+    }
+
+    // 2. Fallback to HTTPS production domain if applicable
+    if (urlString.startsWith('https://')) {
+      final uri = Uri.parse(urlString);
+      try {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Coupon Booklet PDF generated natively inside the app!'),
+          backgroundColor: Color(0xFF104E76),
+        ),
+      );
     }
   }
 
@@ -208,7 +166,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
             child: _QrGeneratorSuiteModal(
               beneficiary: beneficiary,
-              onDownloadPdf: () => _downloadUrl(ApiService.getSingleQrDownloadUrl(beneficiary['tag_no'].toString())),
+              onDownloadPdf: () => _downloadUrl(
+                ApiService.getSingleQrDownloadUrl(beneficiary['tag_no'].toString()),
+                beneficiary,
+              ),
             ),
           );
         },
@@ -301,7 +262,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 : _filteredBeneficiaries.isEmpty
                     ? _buildEmptyState()
                     : RefreshIndicator(
-                        onRefresh: _fetchBeneficiaries,
+                        onRefresh: () => _fetchBeneficiaries(page: _currentPage),
                         color: const Color(0xFF38BDF8),
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -313,7 +274,104 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                       ),
           ),
+          _buildPaginationBar(accentCyan, cardBg),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationBar(Color accentCyan, Color cardBg) {
+    final startItem = _totalRecords == 0 ? 0 : (_currentPage - 1) * _limit + 1;
+    final endItem = (_currentPage * _limit).clamp(0, _totalRecords);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFF131D31),
+        border: Border(top: BorderSide(color: Color(0xFF334155), width: 1)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // Left: Range & Total
+            Expanded(
+              child: Text(
+                _totalRecords > 0
+                    ? 'Showing $startItem-$endItem of $_totalRecords'
+                    : 'No items',
+                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            // Middle: Rows per page
+            const Text(
+              'Per page: ',
+              style: TextStyle(color: Colors.white60, fontSize: 12),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: _limit,
+                  dropdownColor: const Color(0xFF1E293B),
+                  style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.bold),
+                  isDense: true,
+                  items: [10, 20, 50, 100].map((l) => DropdownMenuItem<int>(
+                    value: l,
+                    child: Text('$l'),
+                  )).toList(),
+                  onChanged: (newLimit) {
+                    if (newLimit != null && newLimit != _limit) {
+                      _fetchBeneficiaries(page: 1, limit: newLimit);
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Right: Prev / Page indicator / Next
+            IconButton(
+              icon: const Icon(Icons.chevron_left_rounded, color: Colors.white70),
+              tooltip: 'Previous Page',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _currentPage > 1 && !_isLoading
+                  ? () => _fetchBeneficiaries(page: _currentPage - 1)
+                  : null,
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: accentCyan.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: accentCyan.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                '$_currentPage / $_totalPages',
+                style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 6),
+            IconButton(
+              icon: const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+              tooltip: 'Next Page',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _currentPage < _totalPages && !_isLoading
+                  ? () => _fetchBeneficiaries(page: _currentPage + 1)
+                  : null,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -28,7 +28,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-WEBSITE_API_URL = os.getenv("WEBSITE_API_URL", "https://360parenting.com/api")
 MEDIA_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploaded_media")
 os.makedirs(MEDIA_UPLOAD_DIR, exist_ok=True)
 
@@ -41,192 +40,156 @@ SUPERVISORS_DATA = [
     {"_id": "5", "name": "Millan Haldhar", "districts": ["Balrampur"], "villages": ["Balrampur", "Ramanujganj", "Rajpur", "Samri", "Shankargarh"]},
 ]
 
-BENEFICIARIES_STORE = [
-    {
-        "_id": "b1",
-        "tag_no": "62313",
-        "farmer_name": "Rameshwar Patel",
-        "father_husband_name": "Shyamlal Patel",
-        "village": "Mahasamund",
-        "district": "Mahasamund",
-        "cattle_feed_kg": 25,
-        "silage_kg": 50,
-        "mineral_mixture_kg": 5,
-    },
-    {
-        "_id": "b2",
-        "tag_no": "78201",
-        "farmer_name": "Santosh Kumar",
-        "father_husband_name": "Dinesh Kumar",
-        "village": "Kanker",
-        "district": "Kanker",
-        "cattle_feed_kg": 30,
-        "silage_kg": 60,
-        "mineral_mixture_kg": 10,
-    },
-    {
-        "_id": "b3",
-        "tag_no": "91044",
-        "farmer_name": "Gita Bai Sahu",
-        "father_husband_name": "Maniram Sahu",
-        "village": "Kondagaon",
-        "district": "Kondagaon",
-        "cattle_feed_kg": 20,
-        "silage_kg": 40,
-        "mineral_mixture_kg": 5,
-    },
-    {
-        "_id": "b4",
-        "tag_no": "44912",
-        "farmer_name": "Dhaniram Netam",
-        "father_husband_name": "Kripal Netam",
-        "village": "Sarangarh",
-        "district": "Sharangarh",
-        "cattle_feed_kg": 35,
-        "silage_kg": 70,
-        "mineral_mixture_kg": 10,
-    },
-    {
-        "_id": "b5",
-        "tag_no": "31908",
-        "farmer_name": "Sunil Yadav",
-        "father_husband_name": "Brijesh Yadav",
-        "village": "Balrampur",
-        "district": "Balrampur",
-        "cattle_feed_kg": 25,
-        "silage_kg": 50,
-        "mineral_mixture_kg": 5,
-    },
-    {
-        "_id": "b6",
-        "tag_no": "55120",
-        "farmer_name": "Bhagwati Bai Verma",
-        "father_husband_name": "Kailash Verma",
-        "village": "Bagbahara",
-        "district": "Mahasamund",
-        "cattle_feed_kg": 30,
-        "silage_kg": 55,
-        "mineral_mixture_kg": 8,
-    },
-    {
-        "_id": "b7",
-        "tag_no": "83419",
-        "farmer_name": "Mahendra Singh Thakur",
-        "father_husband_name": "Raghunath Singh",
-        "village": "Charama",
-        "district": "Kanker",
-        "cattle_feed_kg": 40,
-        "silage_kg": 80,
-        "mineral_mixture_kg": 12,
-    },
-    {
-        "_id": "b8",
-        "tag_no": "29104",
-        "farmer_name": "Phoolmati Kashyap",
-        "father_husband_name": "Budhram Kashyap",
-        "village": "Makdi",
-        "district": "Kondagaon",
-        "cattle_feed_kg": 25,
-        "silage_kg": 50,
-        "mineral_mixture_kg": 5,
-    },
-    {
-        "_id": "b9",
-        "tag_no": "67482",
-        "farmer_name": "Devendra Kumar Sahu",
-        "father_husband_name": "Puranik Lal Sahu",
-        "village": "Baramkela",
-        "district": "Sharangarh",
-        "cattle_feed_kg": 35,
-        "silage_kg": 65,
-        "mineral_mixture_kg": 10,
-    },
-    {
-        "_id": "b10",
-        "tag_no": "19485",
-        "farmer_name": "Anuradha Paikra",
-        "father_husband_name": "Devanand Paikra",
-        "village": "Ramanujganj",
-        "district": "Balrampur",
-        "cattle_feed_kg": 20,
-        "silage_kg": 45,
-        "mineral_mixture_kg": 5,
-    },
-    {
-        "_id": "b11",
-        "tag_no": "73620",
-        "farmer_name": "Chaitram Markam",
-        "father_husband_name": "Ghanshyam Markam",
-        "village": "Pharasgaon",
-        "district": "Kondagaon",
-        "cattle_feed_kg": 30,
-        "silage_kg": 60,
-        "mineral_mixture_kg": 8,
-    },
-    {
-        "_id": "b12",
-        "tag_no": "88214",
-        "farmer_name": "Rajendra Prasad Soni",
-        "father_husband_name": "Lalji Soni",
-        "village": "Saraipali",
-        "district": "Mahasamund",
-        "cattle_feed_kg": 25,
-        "silage_kg": 50,
-        "mineral_mixture_kg": 5,
-    },
-]
+BENEFICIARIES_STORE = []
 
 DELIVERIES_STORE = {}
 
+BENEFICIARY_API_URL = os.getenv("BENEFICIARY_API_URL", "https://purple-raven-130094.hostingersite.com/admin/beneficiary-details")
+
+async def fetch_realtime_beneficiaries(page: int = None, limit: int = None) -> dict:
+    """
+    Fetches real-time beneficiary details from the web dev team's API endpoint
+    (https://purple-raven-130094.hostingersite.com/admin/beneficiary-details?page=1&limit=10).
+    Populates BENEFICIARIES_STORE with live records from the API and supports pagination.
+    """
+    if page is not None and limit is not None:
+        target_url = f"{BENEFICIARY_API_URL}?page={page}&limit={limit}"
+    else:
+        # Default fetch all (or high limit) for full internal sync
+        target_url = f"{BENEFICIARY_API_URL}?page=1&limit=1000"
+
+    pagination_data = {}
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            resp = await client.get(target_url)
+            if resp.status_code == 200:
+                res_data = resp.json()
+                raw_items = []
+                if isinstance(res_data, dict):
+                    raw_items = res_data.get("data", [])
+                    pagination_data = res_data.get("pagination", {})
+                elif isinstance(res_data, list):
+                    raw_items = res_data
+
+                fresh_records = []
+                for item in raw_items:
+                    tag_no = str(item.get("earTagId") or item.get("tag_no") or item.get("tagNo") or "").strip()
+                    if not tag_no:
+                        continue
+
+                    farmer_name = item.get("beneficiaryName") or item.get("farmer_name") or item.get("farmerName") or item.get("name") or "Unknown"
+                    father_husband = item.get("husbandFatherName") or item.get("father_husband_name") or item.get("fatherHusbandName") or "-"
+                    village = item.get("village", "")
+                    district = item.get("district", "")
+                    do_number = item.get("doNumber", "")
+                    handover_date = item.get("handoverDate", "")
+                    handover_time = item.get("handoverTime", "")
+
+                    beneficiary_obj = {
+                        "_id": item.get("_id", f"b_{tag_no}"),
+                        "tag_no": tag_no,
+                        "farmer_name": farmer_name,
+                        "father_husband_name": father_husband,
+                        "village": village,
+                        "district": district,
+                        "do_number": do_number,
+                        "handover_date": handover_date,
+                        "handover_time": handover_time,
+                        "cattle_feed_kg": int(item.get("cattle_feed_kg", item.get("cattleFeedKg", 25))),
+                        "silage_kg": int(item.get("silage_kg", item.get("silageKg", 50))),
+                        "mineral_mixture_kg": int(item.get("mineral_mixture_kg", item.get("mineralMixtureKg", 5))),
+                    }
+                    fresh_records.append(beneficiary_obj)
+
+                # Upsert into BENEFICIARIES_STORE
+                for rec in fresh_records:
+                    idx = next((i for i, b in enumerate(BENEFICIARIES_STORE) if b["tag_no"] == rec["tag_no"]), None)
+                    if idx is not None:
+                        BENEFICIARIES_STORE[idx] = rec
+                    else:
+                        BENEFICIARIES_STORE.append(rec)
+
+                if page is not None and limit is not None:
+                    return {
+                        "success": True,
+                        "message": "Beneficiary details fetched successfully",
+                        "data": fresh_records,
+                        "pagination": pagination_data or {
+                            "totalRecords": len(fresh_records),
+                            "totalPages": 1,
+                            "currentPage": page,
+                            "limit": limit
+                        }
+                    }
+
+    except Exception as e:
+        print(f"Warning: Failed to fetch realtime beneficiaries: {e}")
+
+    # Default fallback response
+    total_recs = len(BENEFICIARIES_STORE)
+    req_limit = limit or (total_recs if total_recs > 0 else 10)
+    req_page = page or 1
+    
+    start_idx = (req_page - 1) * req_limit
+    end_idx = start_idx + req_limit
+    paged_items = BENEFICIARIES_STORE[start_idx:end_idx] if page is not None else BENEFICIARIES_STORE
+
+    total_pages = (total_recs + req_limit - 1) // req_limit if req_limit > 0 else 1
+
+    return {
+        "success": True,
+        "message": "Beneficiary details fetched successfully",
+        "data": paged_items,
+        "pagination": {
+            "totalRecords": total_recs,
+            "totalPages": total_pages,
+            "currentPage": req_page,
+            "limit": req_limit
+        }
+    }
+
+async def get_beneficiary_by_tag(tag_no: str) -> dict:
+    """Find a beneficiary by tag_no, querying the real-time API if not cached."""
+    tag_str = str(tag_no).strip()
+    beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == tag_str), None)
+    if not beneficiary:
+        await fetch_realtime_beneficiaries()
+        beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == tag_str), None)
+    return beneficiary
+
+@app.on_event("startup")
+async def startup_event():
+    """Initializes live beneficiary data on backend startup."""
+    print("Initializing real-time beneficiary sync from external API...")
+    beneficiaries = await fetch_realtime_beneficiaries()
+    print(f"Backend started: Synced {len(beneficiaries)} beneficiary records.")
+
 @app.get("/api/districts")
 async def get_districts():
-    # Attempt to fetch from 360 Parenting website API if available
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get(f"{WEBSITE_API_URL}/districts")
-            if resp.status_code == 200:
-                return resp.json()
-    except Exception:
-        pass
-    
-    # Fallback to mapped districts
+    await fetch_realtime_beneficiaries()
     districts = set()
     for s in SUPERVISORS_DATA:
         districts.update(s.get("districts", []))
     for b in BENEFICIARIES_STORE:
-        districts.add(b.get("district", ""))
+        if b.get("district"):
+            districts.add(b.get("district"))
     return sorted(list(filter(None, districts)))
 
 @app.get("/api/districts/{district}/villages")
 async def get_villages(district: str):
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get(f"{WEBSITE_API_URL}/districts/{district}/villages")
-            if resp.status_code == 200:
-                return resp.json()
-    except Exception:
-        pass
-
+    await fetch_realtime_beneficiaries()
     villages = set()
     d_clean = district.strip().lower()
     for s in SUPERVISORS_DATA:
         if any(d.strip().lower() == d_clean for d in s.get("districts", [])):
             villages.update(s.get("villages", []))
     for b in BENEFICIARIES_STORE:
-        if b.get("district", "").strip().lower() == d_clean:
-            villages.add(b.get("village", ""))
+        if b.get("district", "").strip().lower() == d_clean and b.get("village"):
+            villages.add(b.get("village"))
     return sorted(list(filter(None, villages)))
 
 @app.post("/api/partner/login")
 async def partner_login(payload: PartnerLogin):
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.post(f"{WEBSITE_API_URL}/partner/login", json=payload.dict())
-            if resp.status_code == 200:
-                return resp.json()
-    except Exception:
-        pass
-
     sup_name = payload.supervisor_name.strip().lower()
     req_district = payload.district.strip().lower()
     
@@ -246,16 +209,10 @@ async def partner_login(payload: PartnerLogin):
     }
 
 @app.get("/api/beneficiaries")
-async def get_beneficiaries():
-    """Fetch all beneficiaries added on the 360 Parenting website."""
-    try:
-        async with httpx.AsyncClient(timeout=4.0) as client:
-            resp = await client.get(f"{WEBSITE_API_URL}/beneficiaries")
-            if resp.status_code == 200:
-                return resp.json()
-    except Exception:
-        pass
-    return BENEFICIARIES_STORE
+async def get_beneficiaries(page: int = None, limit: int = None):
+    """Fetch beneficiaries in real time from the web dev team's API with optional pagination."""
+    res = await fetch_realtime_beneficiaries(page=page, limit=limit)
+    return res
 
 @app.post("/api/beneficiaries")
 @app.post("/api/webhook/beneficiaries")
@@ -273,26 +230,28 @@ async def receive_beneficiaries_from_website(request: Request):
     received_count = 0
     
     for item in items:
-        tag_no = str(item.get("tag_no", item.get("tagNo", ""))).strip()
+        tag_no = str(item.get("tag_no", item.get("tagNo", item.get("earTagId", "")))).strip()
         if not tag_no:
             continue
             
-        # Check if already exists in memory, update or insert
         existing_idx = next((i for i, b in enumerate(BENEFICIARIES_STORE) if str(b.get("tag_no")) == tag_no), None)
         beneficiary_obj = {
             "_id": item.get("_id", f"b_{tag_no}"),
             "tag_no": tag_no,
-            "farmer_name": item.get("farmer_name", item.get("farmerName", item.get("name", "Unknown"))),
-            "father_husband_name": item.get("father_husband_name", item.get("fatherHusbandName", item.get("husband_name", "-"))),
+            "farmer_name": item.get("beneficiaryName", item.get("farmer_name", item.get("farmerName", item.get("name", "Unknown")))),
+            "father_husband_name": item.get("husbandFatherName", item.get("father_husband_name", item.get("fatherHusbandName", item.get("husband_name", "-")))),
             "village": item.get("village", ""),
             "district": item.get("district", ""),
-            "cattle_feed_kg": int(item.get("cattle_feed_kg", item.get("cattleFeedKg", item.get("cattle_feed", 0)))),
-            "silage_kg": int(item.get("silage_kg", item.get("silageKg", item.get("silage", 0)))),
-            "mineral_mixture_kg": int(item.get("mineral_mixture_kg", item.get("mineralMixtureKg", item.get("mineral_mixture", 0)))),
+            "do_number": item.get("doNumber", ""),
+            "handover_date": item.get("handoverDate", ""),
+            "handover_time": item.get("handoverTime", ""),
+            "cattle_feed_kg": int(item.get("cattle_feed_kg", item.get("cattleFeedKg", item.get("cattle_feed", 25)))),
+            "silage_kg": int(item.get("silage_kg", item.get("silageKg", item.get("silage", 50)))),
+            "mineral_mixture_kg": int(item.get("mineral_mixture_kg", item.get("mineralMixtureKg", item.get("mineral_mixture", 5)))),
         }
         
         if existing_idx is not None:
-            BENEFICIARIES_STORE[existing_idx] = beneficiary_obj
+            BENEFICIARIES_STORE[existing_idx].update(beneficiary_obj)
         else:
             BENEFICIARIES_STORE.append(beneficiary_obj)
             
@@ -310,7 +269,7 @@ async def receive_beneficiaries_from_website(request: Request):
 @app.get("/api/beneficiaries/{tag_no}/qr-pdf")
 async def download_single_qrs(tag_no: str):
     """Generate and download a 36-coupon booklet PDF for a beneficiary."""
-    beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == str(tag_no)), None)
+    beneficiary = await get_beneficiary_by_tag(tag_no)
     if not beneficiary:
         beneficiary = {
             "tag_no": tag_no,
@@ -334,7 +293,8 @@ async def download_single_qrs(tag_no: str):
 @app.get("/api/beneficiaries/qrs/download")
 async def download_all_qrs():
     """Download all active beneficiaries' 36-coupon booklet PDFs."""
-    pdf_path = await generate_all_qrs_pdf(BENEFICIARIES_STORE)
+    all_beneficiaries = await fetch_realtime_beneficiaries()
+    pdf_path = await generate_all_qrs_pdf(all_beneficiaries)
     return FileResponse(
         path=pdf_path,
         filename="All_360_Parenting_Coupon_Books.pdf",
@@ -357,7 +317,7 @@ async def get_qr_data(qr_code_id: str, supervisor_district: str = None):
         month = int(qr_match.group(2))
         product_code = qr_match.group(3).upper() if qr_match.group(3) else None
 
-    beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == str(tag_no)), None)
+    beneficiary = await get_beneficiary_by_tag(tag_no)
     if not beneficiary:
         raise HTTPException(status_code=404, detail="Beneficiary not found")
 
@@ -407,7 +367,7 @@ async def complete_delivery(
 ):
     parts = tag_no.split("-M")
     b_tag_no = parts[0] if len(parts) > 0 else tag_no
-    beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == str(b_tag_no)), None)
+    beneficiary = await get_beneficiary_by_tag(b_tag_no)
 
     # Save media locally
     async def save_file(upload_file: UploadFile, suffix: str):
@@ -446,7 +406,7 @@ async def get_delivery(tag_no: str):
     if not delivery:
         parts = tag_no.split("-M")
         b_tag = parts[0] if len(parts) > 0 else tag_no
-        beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == str(b_tag)), None)
+        beneficiary = await get_beneficiary_by_tag(b_tag)
         return {
             "tag_no": tag_no,
             "status": "delivered",
@@ -466,7 +426,7 @@ async def get_invoice_pdf(tag_no: str):
     if not delivery:
         parts = tag_no.split("-M")
         b_tag = parts[0] if len(parts) > 0 else tag_no
-        beneficiary = next((b for b in BENEFICIARIES_STORE if str(b.get("tag_no")) == str(b_tag)), None)
+        beneficiary = await get_beneficiary_by_tag(b_tag)
         delivery = {
             "tag_no": tag_no,
             "supervisor_name": "Supervisor",

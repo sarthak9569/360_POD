@@ -220,7 +220,7 @@ def _make_qr_buffer(data_str: str) -> BytesIO:
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buf = BytesIO()
-    img.save(buf, format="PNG")
+    img.save(buf)
     buf.seek(0)
     return buf
 
